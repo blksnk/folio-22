@@ -1,0 +1,13 @@
+{
+  "name": "Genmetsu - Jean-Nicolas Veigel",
+  "short_name": "Genmetsu - JNV",
+  "start_url": "./?utm_source=web_app_manifest",
+  "display": "standalone",
+  "orientation": "any",
+  "related_applications": [{
+    "platform": "web"
+  }, {
+    "platform": "play",
+    "url": "https://play.google.com/store/apps/details?id=com.google.samples.apps.iosched"
+  }]
+}

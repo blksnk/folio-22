@@ -1,0 +1,33 @@
+@font-face
+  font-family: "Neue"
+  src: url("@/assets/fonts/NeueHaasGroteskDisplay-Reg.otf") format("opentype")
+  font-weight: 400
+
+@font-face
+  font-family: "Neue"
+  src: url("@/assets/fonts/NeueHaasGroteskDisplay-Medium.otf") format("opentype")
+  font-weight: 500
+
+@font-face
+  font-family: "Giselle"
+  src: url("@/assets/fonts/FHGiselle-LightItalic.woff2") format("woff2")
+  font-weight: 300
+
+@mixin f-project-title
+  font-family: "Neue"
+  font-size: 14px
+  font-weight: 500
+
+@mixin f-nav-link
+  font-family: "Neue"
+  font-size: 18px
+  font-weight: 400
+
+@mixin f-nav-link__active
+  font-family: "Giselle"
+  font-size: 19px
+  font-weight: 300
+
+h2
+  @include f-project-title
+  color: $c-grey-6
