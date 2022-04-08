@@ -1,5 +1,10 @@
 <template>
-  <FixedFrame class="dotted">
+  <FixedFrame
+    class="dotted"
+    @close="onClose()"
+    :displayTitle="windowOpen"
+    :title="openWindow?.title"
+  >
     <Window
       v-for="window in windows"
       :key="window.id"
@@ -11,11 +16,13 @@
       :open="window.open"
       :velocity="{ x: Math.round(velocity.x), y: Math.round(velocity.y) }"
       :zoomFactor="zoomFactor.value"
-      @click="(e) => selectWindow(window.id, false, e)"
+      :hidden="window.hidden"
+      :baseSize="baseWindowSize"
+      :screenSize="screenSize"
+      @mouseup="() => selectWindow(window.id, false)"
       @mouseover="onMouseOver(window.id)"
       @mouseleave="onMouseLeave()"
       @open="onOpen(window.id)"
-      @close="onClose()"
     />
     <Minimap
       :items="minimapItems"
@@ -25,7 +32,7 @@
     />
     <!-- <TextWindow content="test content" title="text title" :zoomFactor="zoomFactor.value" id="0" /> -->
   </FixedFrame>
-  <MouseCursor :mousePos="mousePos" :showText="showCursor" />
+  <MouseCursor v-if="!isMobile" :mousePos="mousePos" :showText="showCursor" />
   <!-- <Debug :lines="debugLine" title="Debug" /> -->
 </template>
 
@@ -39,7 +46,14 @@ export const getScreenDims = () => ({
 </script>
 
 <script setup lang="ts">
-import { reactive, onBeforeUnmount, onMounted, computed, ref } from "vue";
+import {
+  reactive,
+  onBeforeUnmount,
+  onMounted,
+  computed,
+  ref,
+  watchEffect,
+} from "vue";
 // import { storeToRefs } from "pinia";
 
 import FixedFrame from "@/components/FixedFrame.vue";
@@ -49,9 +63,10 @@ import Minimap from "@/components/Minimap.vue";
 
 // import { useApiData } from "@/stores/apiData";
 import GestureHandler from "@/utils/gesture";
-import { Vector2 } from "@/utils/layout";
-import { loadApi, ImageFormats, ImageFormat } from "@/utils/api";
+import { Vector2, isWindowVisible } from "@/utils/layout";
+import { loadApi } from "@/utils/api";
 import MouseCursor from "@/components/MouseCursor.vue";
+import { ImageFormat } from "@/utils/api.types";
 
 export interface ScreenDims extends Vector2 {
   center: Vector2;
@@ -60,6 +75,7 @@ export interface ScreenDims extends Vector2 {
 
 interface WindowData {
   transform: Transform;
+  targetTransform: Transform;
   title: string;
   id: number | string;
   selected: boolean;
@@ -67,12 +83,25 @@ interface WindowData {
   initialPosition: Vector2;
   transformPreZoom: Vector2;
   open: boolean;
+  hidden: boolean;
 }
 
 interface CanvasBoundaries {
   min: Vector2;
   max: Vector2;
 }
+
+let screenSize = reactive<ScreenDims>(getScreenDims());
+
+const isMobile = ref<boolean>(screenSize.x < 600);
+
+const baseWindowSize = reactive<Vector2>({
+  x: isMobile.value ? 250 : 500,
+  y: isMobile.value ? 250 : 500,
+});
+
+
+const marginBetweenWindows = baseWindowSize.x / 4;
 
 let mouseDown = false;
 let lastMousePos: Vector2 = { x: 0, y: 0 };
@@ -88,9 +117,10 @@ let frameId = 0;
 let translating = reactive({ value: false });
 let selectedId = reactive<{ id: string | number }>({ id: 0 });
 let gestures: GestureHandler | undefined;
-let zoomFactor = reactive({ value: 0.2 });
-let preTranslateZoomTarget = 0.75;
-let zoomTarget = 0.75;
+let zoomFactor = reactive({ value: 0.15 });
+let preTranslateZoomTarget = 0.5;
+let zoomTarget = 0.5;
+let dragDezooming = false;
 const clickDuration = 100;
 
 let debugLine = reactive<Vector2>({ x: 0, y: 0 });
@@ -102,6 +132,10 @@ const initialBoundaries = reactive<CanvasBoundaries>({
 
 const windowOpen = computed(() =>
   windows.value.some((el: WindowData) => el.open)
+);
+
+const openWindow = computed(() =>
+  windows.value.find((el: WindowData) => el.open)
 );
 
 // takes zoom into account
@@ -119,8 +153,6 @@ const effectiveBoundaries = computed(() => {
   };
 });
 
-let screenSize = reactive<ScreenDims>(getScreenDims());
-
 const initPositionVariation: Vector2 = {
   x: screenSize.x < 600 ? 50 : 300,
   y: screenSize.x < 600 ? 200 : 500,
@@ -135,7 +167,7 @@ const selectedWindow = computed(() =>
 function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   return Math.max(
     Math.abs(screenSize.center[vectorName] - value) / screenSize[vectorName] +
-      minMoveFactor,
+    minMoveFactor,
     0
   );
 }
@@ -158,7 +190,7 @@ function getScaleCoef(offset: Vector2): number {
   return scaleCoef;
 }
 
-function tranformWindows(vel: Vector2): void {
+function tranformWindowsOnDrag(vel: Vector2): void {
   const zoom = zoomFactor.value;
   const zoomInvert = 1 - zoom;
   translatePosition.x += vel.x * (2 - zoom);
@@ -182,23 +214,35 @@ function tranformWindows(vel: Vector2): void {
     }
     window.transformPreZoom.x += vel.x * (2 - zoom); // * offsetFromCenter.x;
     window.transformPreZoom.y += vel.y * (2 - zoom); //* offsetFromCenter.y;
-    window.transform.x =
+    window.targetTransform.x =
       window.transformPreZoom.x * zoom + screenSize.center.x * zoomInvert;
-    window.transform.y =
+    window.targetTransform.y =
       window.transformPreZoom.y * zoom + screenSize.center.y * zoomInvert;
-    window.transform.scale = scale * zoom;
+    window.targetTransform.scale = scale * zoom;
+  });
+}
+
+function applyWindowTransforms() {
+  windows.value.forEach((window) => {
+    window.transform.x +=
+      (window.targetTransform.x - window.transform.x) / dragFactor;
+    window.transform.y +=
+      (window.targetTransform.y - window.transform.y) / dragFactor;
   });
 }
 
 function onStart({ x, y }: Vector2): void {
   // wait for a click on window. if no click, toggle zoom animation on move
   if (!windowOpen.value) {
-    setTimeout(() => {
-      if (!translating.value) {
-        preTranslateZoomTarget = zoomTarget;
-        zoomTarget = preTranslateZoomTarget * 0.8;
-      }
-    }, clickDuration);
+    if (!translating.value && !windowOpen.value && !dragDezooming) {
+      setTimeout(() => {
+        if (!dragDezooming && mouseDown) {
+          dragDezooming = true;
+          preTranslateZoomTarget = zoomTarget;
+          zoomTarget = preTranslateZoomTarget * 0.8;
+        }
+      }, clickDuration);
+    }
     lastMousePos.x = x;
     lastMousePos.y = y;
     mouseDown = true;
@@ -206,7 +250,11 @@ function onStart({ x, y }: Vector2): void {
 }
 
 function onEnd(): void {
+
   zoomTarget = preTranslateZoomTarget;
+  setTimeout(() => {
+    dragDezooming = false
+  }, )
   mouseDown = false;
 }
 
@@ -242,7 +290,7 @@ function onMove({ x, y }: Vector2): void {
   targetMousePos.x = x;
   targetMousePos.y = y;
   if (mouseDown) {
-    // zoomTarget = zoomFactor.value;
+    zoomTarget = zoomFactor.value;
     translating.value = false;
     const deltaX: number = x - lastMousePos.x;
     const deltaY: number = y - lastMousePos.y;
@@ -275,13 +323,25 @@ function setWindowSelection(selectId: number | string) {
 function onOpen(windowId: number | string) {
   setWindowSelection(windowId);
   console.log("open", windowId);
+  zoomTarget = 0.9;
+  translating.value = true;
+
   windows.value.forEach((window) => {
+    const openWindow = window.id === windowId;
     window.open = window.id === windowId;
+    // hide other windows
+    if (!openWindow) {
+      window.hidden = true;
+      // hideWindowIfNeeded(window);
+    }
   });
 }
 
 function onClose() {
-  windows.value.forEach((window: WindowData) => (window.open = false));
+  windows.value.forEach((window: WindowData) => {
+    window.open = false;
+    window.hidden = false;
+  });
 }
 
 function getWindowById(windowId: number | string) {
@@ -305,6 +365,7 @@ const selectWindow = (
     showCursor.value = forceShowCursor; // default to hiding cursor on click
     setWindowSelection(targetId);
     zoomTarget = 0.8;
+    preTranslateZoomTarget = 0.8;
   }
 };
 
@@ -323,7 +384,6 @@ function translateToTargetPos() {
       velocity.x += dstToTarget.x * 0.005;
       velocity.y += (dstToTarget.y * 0.005) / screenSize.ratio;
     } else if (translating.value) {
-      console.log("END TRANSLATE");
       translating.value = false;
     }
   }
@@ -365,7 +425,7 @@ function onMouseLeave() {
 function animate(): void {
   frameId = requestAnimationFrame(animate);
   applyZoom();
-  tranformWindows(velocity);
+  tranformWindowsOnDrag(velocity);
   translateToTargetPos();
   translateCursor();
   keepInBounds();
@@ -376,20 +436,8 @@ function randomOffset(n: number) {
   return Math.random() * n * 2 - Math.random() * n;
 }
 
-function randomWindowPosition(
-  index = 0,
-  windowSize = screenSize.x < 600 ? 230 : 500
-): Vector2 {
-  const x =
-    screenSize.center.x +
-    index * windowSize +
-    randomOffset(initPositionVariation.x); // + randomOffset(initPositionVariation.x);
-  const y = randomOffset(initPositionVariation.y);
-  return { x, y };
-}
-
 const minimapItems = computed(() =>
-  windows.value.map(({ transform, thumbnail, selected, id }) => ({
+  windows.value.map(({ transform, thumbnail, selected, id, hidden }) => ({
     transform: {
       x: transform.x,
       y: transform.y,
@@ -398,6 +446,7 @@ const minimapItems = computed(() =>
     selected,
     height: thumbnail.height,
     width: thumbnail.width,
+    hidden,
     id,
   }))
 );
@@ -443,24 +492,45 @@ function setInitalBoundaries() {
   console.log(initialBoundaries);
 }
 
+function initialWindowPosition(index: number, prevRatio: number, currentRatio: number): Vector2 {
+  const x =
+    (index % 2 === 0 ? index : index - 1) *
+    (baseWindowSize.x / 2 + marginBetweenWindows);
+  const y =
+    index % 2 === 0 ? 0 : (baseWindowSize.x / prevRatio / currentRatio) + marginBetweenWindows;
+  return { x, y };
+}
+
 onMounted(async () => {
   const apiRes = await loadApi();
 
+  console.log(apiRes)
+
   if (apiRes && apiRes?.projects) {
     windows.value = apiRes.projects.map((project, index) => {
-      const initPos = randomWindowPosition(index);
+      const initPos = initialWindowPosition(
+        index,
+        index > 0
+          ? apiRes.projects[index - 1].thumbnail.original.aspectRatio
+          : 0,
+        project.thumbnail.original.aspectRatio
+      );
+      const transform = {
+        ...initPos,
+        scale: 1,
+      };
+
       return {
-        transform: {
-          ...initPos,
-          scale: 1,
-        },
+        transform,
+        targetTransform: transform,
         initialPosition: initPos,
         transformPreZoom: initPos,
         title: project.title,
         id: project.uid,
         selected: index === 0,
-        thumbnail: (project.thumbnail as ImageFormats).large,
+        thumbnail: project.thumbnail.large,
         open: false,
+        hidden: false,
       };
     });
   }
@@ -475,6 +545,18 @@ onMounted(async () => {
     onWheel,
     onPinch,
   });
+
+  window.addEventListener("resize", () => {
+    baseWindowSize.x = isMobile.value ? 250 : 500;
+    baseWindowSize.y = isMobile.value ? 250 : 500;
+    const { x, y, center, ratio } = getScreenDims();
+    screenSize.x = x;
+    isMobile.value = x < 600;
+    screenSize.y = y;
+    screenSize.center = center;
+    screenSize.ratio = ratio;
+    setInitalBoundaries();
+  });
 });
 
 onBeforeUnmount(() => {
@@ -487,12 +569,6 @@ onBeforeUnmount(() => {
 
 window.addEventListener("resize", () => {
   console.log("resize");
-  const { x, y, center, ratio } = getScreenDims();
-  screenSize.x = x;
-  screenSize.y = y;
-  screenSize.center = center;
-  screenSize.ratio = ratio;
-  setInitalBoundaries();
 });
 </script>
 

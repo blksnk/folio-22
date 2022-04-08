@@ -1,38 +1,33 @@
 import { Store } from "pinia";
 import qs from "qs";
+import {
+  Project,
+  ProjectMedia,
+  ProjectText,
+  uid,
+  ImageFormat,
+  ImageFormats,
+  ProjectType,
+  ProjectsResponse_Raw,
+  Project_Raw,
+  ProjectTag_Raw,
+  ProjectText_Raw,
+  ProjectType_Raw,
+  ProjectMedia_Raw,
+  ImageResponse_Raw,
+  ImageFormat_Raw,
+} from "./api.types";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export interface ImageFormat {
-  height: number;
-  width: number;
-  ext?: string;
-  path: string | null;
-  size: number;
-  url: string | null;
-  hash?: string;
-  mime?: string;
-  name?: string;
-  aspectRatio: number;
-}
-
-export interface ImageFormats {
-  [k: string]: any;
-  large: ImageFormat;
-  medium: ImageFormat;
-  small: ImageFormat;
-  thumbnail: ImageFormat;
-  original: ImageFormat;
-}
-
-export interface ProjectTag {
+export type ProjectTag = {
   uid: string;
   title: string;
-}
+};
 
 export const client = async (endpoint: string) => {
   try {
-    const url = `${API_URL}/api/${endpoint}`;
+    const url = `${API_URL}${endpoint}`;
     const res = await fetch(url, { method: "GET" });
     return await res.json();
   } catch (e) {
@@ -45,16 +40,16 @@ const projectQuery = qs.stringify({
   populate: ["type", "tags", "thumbnail", "media", "texts", "media.media"],
 });
 
-export const fetchProjects = async () =>
+export const fetchProjects = async (): Promise<ProjectsResponse_Raw> =>
   await client(`projects?${projectQuery}`);
 
 export const extractProjectType = ({
   data,
 }: {
-  data: { attributes: { name: string } };
-}) => data.attributes.name;
+  data: ProjectType_Raw["data"];
+}): ProjectType => ({ name: data.attributes.name, id: data.attributes.typeId });
 
-export const formatImageFormat = (format: ImageFormat): ImageFormat => {
+export const formatImageFormat = (format: ImageFormat_Raw): ImageFormat => {
   const { height, width, ext, path, size, url } = format;
   return {
     height,
@@ -63,47 +58,64 @@ export const formatImageFormat = (format: ImageFormat): ImageFormat => {
     ext,
     path,
     size,
-    url: (API_URL as string) + url,
+    url,
   };
 };
 
-export const formatMedia = (media: any) => {
-  const formats = media.data.attributes.formats;
-  console.log(formats, media)
+export const formatMedia = ({
+  data,
+}: {
+  data: ImageResponse_Raw;
+}): ImageFormats => {
+  const formats = data.attributes.formats;
   return {
     ...Object.fromEntries(
-      Object.entries(formats as ImageFormats).map(([key, value]) => {
-        return [key, formatImageFormat(value as ImageFormat)];
+      Object.entries(formats).map(([key, value]) => {
+        return [key, formatImageFormat(value)];
       })
     ),
-    original: formatImageFormat(media.data.attributes),
-  };
+    original: formatImageFormat(data.attributes),
+  } as ImageFormats;
 };
 
-export const formatTags = ({ data }: { data: any[] }): ProjectTag[] =>
+export const formatTags = ({
+  data,
+}: {
+  data: ProjectTag_Raw[];
+}): ProjectTag[] =>
   data.map(({ attributes }) => ({
     title: attributes.title,
     uid: attributes.uid,
   }));
 
-export const formatProjectMedias = ({ data }: { data: any[] }) =>
+export const formatProjectMedias = ({
+  data,
+}: {
+  data: ProjectMedia_Raw[];
+}): ProjectMedia[] =>
   data.map(({ attributes }) => ({
     media: formatMedia(attributes.media),
-    title: attributes.title,
-    uid: attributes.uid,
+    title: attributes.title as string,
+    uid: attributes.uid as uid,
   }));
 
-export const formatProjectTexts = ({ data }: { data: any[] }) =>
+export const formatProjectTexts = ({
+  data,
+}: {
+  data: ProjectText_Raw[];
+}): ProjectText[] =>
   data.map(({ attributes }) => ({
     title: attributes.title,
     content: attributes.content,
+    uid: attributes.uid,
   }));
 
-export const formatProjects = (projects: any[]) => {
+export const formatProjects = (projects: Project_Raw[]): Project[] => {
   console.log(projects);
   return projects
     .map(({ attributes }) => {
-      const { title, uid, type, thumbnail, index, tags, media, texts } = attributes;
+      const { title, uid, type, thumbnail, index, tags, media, texts } =
+        attributes;
       return {
         title,
         uid,
@@ -121,8 +133,9 @@ export const formatProjects = (projects: any[]) => {
 export const loadApi = async () => {
   try {
     const projects = await fetchProjects();
+    console.log(projects);
     const formattedProjects = formatProjects(projects.data);
-    console.log(formattedProjects);
+    // console.log(formattedProjects);
 
     // if (storeReference) {
     //   storeReference.$patch({

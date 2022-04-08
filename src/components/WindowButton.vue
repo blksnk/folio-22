@@ -5,7 +5,7 @@
       enabled: props?.enabled,
       active: props?.active,
     }"
-    :data-content="props.text"
+    :data-content="props.active ? props.activeText : props.text"
     @click="emit('click')"
   ></button>
 </template>
@@ -93,5 +93,11 @@ const emit = defineEmits([ "click" ]);
   &.enabled:hover::before
     cursor: pointer
     transform: translateX(0)
+
+  &.active
+    width: 67px
+    
+  &.active::after
+    background-color: $c-primary
     
 </style>

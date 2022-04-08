@@ -5,7 +5,7 @@
       v-for="(item, index) in minimapItemStyles"
       :key="'item' + index"
       :style="item.style"
-      :class="{ active: item.selected }"
+      :class="{ active: item.selected, hidden: item.hidden }"
       @click="onSelect(item.id)"
     ></div>
   </div>
@@ -14,7 +14,7 @@
 <script setup lang="ts">
 import { computed, watch } from "vue";
 import { ScreenDims } from "@/views/IndexView.vue";
-import { Vector2 } from "@/utils/gesture";
+import { Vector2 } from "@/utils/layout";
 
 interface MinimapItem {
   transform: Vector2;
@@ -23,6 +23,7 @@ interface MinimapItem {
   width: number;
   selected: boolean;
   id: string | number;
+  hidden: boolean;
 }
 
 interface MinimapProps {
@@ -36,6 +37,7 @@ interface MinimapItemProps {
   style: string;
   id: string | number;
   selected: boolean;
+  hidden: boolean;
 }
 
 const props = defineProps<MinimapProps>();
@@ -53,7 +55,7 @@ const renderRatio = computed<Vector2>(() => ({
 
 const minimapItemStyles = computed<MinimapItemProps[]>(() =>
   props.items
-    .map(({ transform, ratio, selected, ...item }) => ({
+    .map(({ transform, ratio, selected, hidden, ...item }) => ({
       x:
         (transform.x * renderRatio.value.x) / 2 +
         WIDTH.value / 4 -
@@ -61,12 +63,14 @@ const minimapItemStyles = computed<MinimapItemProps[]>(() =>
       y: (transform.y * renderRatio.value.y) / 2 + HEIGHT / 4 - ITEM_SIZE / 2,
       scale: { x: 1, y: 1 / ratio },
       selected,
+      hidden,
       ...item,
     }))
-    .map(({ id, selected, ...item }) => ({
+    .map(({ id, selected, hidden, ...item }) => ({
       style: `height: ${ITEM_SIZE}px; width: ${ITEM_SIZE}px ; transform: translate(${item.x}px, ${item.y}px) scale(${item.scale.x}, ${item.scale.y});`,
       selected,
       id,
+      hidden,
     }))
 );
 
@@ -98,10 +102,15 @@ const minimapStyle = computed(
   .minimap__item
     position: absolute
     background-color: transparent
-    transition: background-color .2s linear 0s
+    transition: background-color .2s linear 0s, opacity .3s linear 0s
     transform-origin: center center
     pointer-events: all
     border: 1px solid $c-grey-6
+    opacity: 1
+
+    &.hidden
+      opacity: 0
+      pointer-events: none
 
     &.active
       background-color: $c-primary

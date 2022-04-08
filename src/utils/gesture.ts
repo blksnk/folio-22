@@ -5,7 +5,7 @@ type func = () => void;
 
 type onTouchFunc = (touches: Vector2[]) => void;
 
-type VectorArgFunc = (vec: Vector2) => void;
+type VectorArgFunc = (vec: Vector2, delta?: Vector2) => void;
 
 interface GestureHandlerOptions {
   onStart: VectorArgFunc;
@@ -108,9 +108,15 @@ class GestureHandler {
 
   _onMouseMove(e: Event) {
     this.prevent(e);
-    this.mousePos.x = (e as MouseEvent).clientX;
-    this.mousePos.y = (e as MouseEvent).clientY;
-    this.onMove(this.mousePos);
+    const x = (e as MouseEvent).clientX;
+    const y = (e as MouseEvent).clientY;
+    const delta = {
+      x: x - this.mousePos.x,
+      y: y - this.mousePos.y,
+    };
+    this.mousePos.x = x;
+    this.mousePos.y = y;
+    this.onMove(this.mousePos, delta);
   }
 
   private getTouchPositions(touches: Touch[]): Vector2[] {

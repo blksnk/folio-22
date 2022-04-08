@@ -1,3 +1,5 @@
+import { ScreenDims } from "@/views/IndexView.vue";
+
 export interface Vector2 {
   [key: string]: number | Vector2;
   x: number;
@@ -25,7 +27,6 @@ export const createWindowTransformStyle = (
   }deg, ${velocity.y / 15}deg);`;
 };
 
-
 export function clamp(v: number, min: number, max: number): number {
   return Math.min(Math.max(v, min), max);
 }
@@ -37,3 +38,23 @@ export function isBetween(v: number, min: number, max: number): boolean {
 export function largestAbsolute(n1: number, n2: number): number {
   return Math.abs(n1) > Math.abs(n2) ? n1 : n2;
 }
+
+export const isNegative = (n: number): boolean => n - Math.abs(n) > 0;
+
+export const isInViewport = (element: HTMLElement): boolean => {
+  const rect = element.getBoundingClientRect();
+  console.log(rect);
+  return (
+    rect.top >= 0 ||
+    rect.left >= 0 ||
+    rect.bottom >=
+      (window.innerHeight || document.documentElement.clientHeight) ||
+    rect.right >= (window.innerWidth || document.documentElement.clientWidth)
+  );
+};
+
+export const isWindowVisible = (windowId: string | number): boolean => {
+  const target = document.getElementById(String(windowId));
+  console.log(target)
+  return target === null ? false : isInViewport(target);
+};
