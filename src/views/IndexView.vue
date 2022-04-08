@@ -14,7 +14,7 @@
       :selected="window.selected"
       :thumbnail="window.thumbnail"
       :open="window.open"
-      :velocity="{ x: Math.round(velocity.x), y: Math.round(velocity.y) }"
+      :velocity="velocity"
       :zoomFactor="zoomFactor.value"
       :hidden="window.hidden"
       :baseSize="baseWindowSize"
@@ -54,6 +54,7 @@ import {
   ref,
   watchEffect,
 } from "vue";
+import { debounce } from "lodash";
 // import { storeToRefs } from "pinia";
 
 import FixedFrame from "@/components/FixedFrame.vue";
@@ -63,23 +64,24 @@ import Minimap from "@/components/Minimap.vue";
 
 // import { useApiData } from "@/stores/apiData";
 import GestureHandler from "@/utils/gesture";
-import { Vector2, isWindowVisible } from "@/utils/layout";
+import { Vector2, createBoundaries } from "@/utils/layout";
 import { loadApi } from "@/utils/api";
 import MouseCursor from "@/components/MouseCursor.vue";
-import { ImageFormat } from "@/utils/api.types";
+import { ImageFormats } from "@/utils/api.types";
+import { clamp, getScaleCoef, largestAbsolute, isBetween } from "@/utils/math";
 
 export interface ScreenDims extends Vector2 {
   center: Vector2;
   ratio: number;
 }
 
-interface WindowData {
+export interface WindowData {
   transform: Transform;
   targetTransform: Transform;
   title: string;
   id: number | string;
   selected: boolean;
-  thumbnail: ImageFormat;
+  thumbnail: ImageFormats;
   initialPosition: Vector2;
   transformPreZoom: Vector2;
   open: boolean;
@@ -100,7 +102,6 @@ const baseWindowSize = reactive<Vector2>({
   y: isMobile.value ? 250 : 500,
 });
 
-
 const marginBetweenWindows = baseWindowSize.x / 4;
 
 let mouseDown = false;
@@ -118,10 +119,9 @@ let translating = reactive({ value: false });
 let selectedId = reactive<{ id: string | number }>({ id: 0 });
 let gestures: GestureHandler | undefined;
 let zoomFactor = reactive({ value: 0.15 });
-let preTranslateZoomTarget = 0.5;
-let zoomTarget = 0.5;
+let preTranslateZoomTarget = isMobile.value ? 0.8 : 0.5;
+let zoomTarget = isMobile.value ? 0.8 : 0.5;
 let dragDezooming = false;
-const clickDuration = 100;
 
 let debugLine = reactive<Vector2>({ x: 0, y: 0 });
 let windows = ref<WindowData[]>([]);
@@ -167,27 +167,9 @@ const selectedWindow = computed(() =>
 function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   return Math.max(
     Math.abs(screenSize.center[vectorName] - value) / screenSize[vectorName] +
-    minMoveFactor,
+      minMoveFactor,
     0
   );
-}
-
-function clamp(v: number, min: number, max: number): number {
-  return Math.min(Math.max(v, min), max);
-}
-
-function isBetween(v: number, min: number, max: number): boolean {
-  return v > min && v < max;
-}
-
-function largestAbsolute(n1: number, n2: number): number {
-  return Math.abs(n1) > Math.abs(n2) ? n1 : n2;
-}
-
-function getScaleCoef(offset: Vector2): number {
-  const sum = offset.x + offset.y;
-  const scaleCoef = clamp((1 - sum / 2 + 0.5) * 1.3, 0.5, 1);
-  return scaleCoef;
 }
 
 function tranformWindowsOnDrag(vel: Vector2): void {
@@ -241,7 +223,7 @@ function onStart({ x, y }: Vector2): void {
           preTranslateZoomTarget = zoomTarget;
           zoomTarget = preTranslateZoomTarget * 0.8;
         }
-      }, clickDuration);
+      }, 100);
     }
     lastMousePos.x = x;
     lastMousePos.y = y;
@@ -250,11 +232,10 @@ function onStart({ x, y }: Vector2): void {
 }
 
 function onEnd(): void {
-
   zoomTarget = preTranslateZoomTarget;
   setTimeout(() => {
-    dragDezooming = false
-  }, )
+    dragDezooming = false;
+  }, 10);
   mouseDown = false;
 }
 
@@ -303,6 +284,7 @@ function onMove({ x, y }: Vector2): void {
 }
 
 function onTouch(touchPositions: Vector2[]): void {
+  isMobile.value = true;
   if (touchPositions.length === 1) {
     onMove(touchPositions[0]);
   }
@@ -311,6 +293,18 @@ function onTouch(touchPositions: Vector2[]): void {
 function decreaseVelocity(dragFactor = 0.0) {
   velocity.x *= dragFactor;
   velocity.y *= dragFactor;
+  if (
+    (velocity.x > 0 && velocity.x < 0.000001) ||
+    (velocity.x < 0 && velocity.x > -0.000001)
+  ) {
+    velocity.x = 0;
+  }
+  if (
+    (velocity.y > 0 && velocity.y < 0.000001) ||
+    (velocity.y < 0 && velocity.y > -0.000001)
+  ) {
+    velocity.y = 0;
+  }
 }
 
 function setWindowSelection(selectId: number | string) {
@@ -428,7 +422,7 @@ function animate(): void {
   tranformWindowsOnDrag(velocity);
   translateToTargetPos();
   translateCursor();
-  keepInBounds();
+  // keepInBounds();
   decreaseVelocity(translating ? dragFactor : 0);
 }
 
@@ -442,10 +436,10 @@ const minimapItems = computed(() =>
       x: transform.x,
       y: transform.y,
     },
-    ratio: thumbnail.aspectRatio,
+    ratio: thumbnail.large.aspectRatio,
     selected,
-    height: thumbnail.height,
-    width: thumbnail.width,
+    height: thumbnail.large.height,
+    width: thumbnail.large.width,
     hidden,
     id,
   }))
@@ -482,29 +476,46 @@ function getBoundaries(
   };
 }
 
+function onResize() {
+  baseWindowSize.x = isMobile.value ? 250 : 500;
+  baseWindowSize.y = isMobile.value ? 250 : 500;
+  const { x, y, center, ratio } = getScreenDims();
+  screenSize.x = x;
+  isMobile.value = x < 600;
+  screenSize.y = y;
+  screenSize.center = center;
+  screenSize.ratio = ratio;
+  setInitalBoundaries();
+}
+
 function setInitalBoundaries() {
   const { max, min } = getBoundaries(windows.value, {
     x: screenSize.center.x,
     y: screenSize.center.y,
   });
+  createBoundaries(windows.value, baseWindowSize)
   initialBoundaries.min = min;
   initialBoundaries.max = max;
   console.log(initialBoundaries);
 }
 
-function initialWindowPosition(index: number, prevRatio: number, currentRatio: number): Vector2 {
+function initialWindowPosition(
+  index: number,
+  prevRatio: number,
+  currentRatio: number
+): Vector2 {
   const x =
     (index % 2 === 0 ? index : index - 1) *
     (baseWindowSize.x / 2 + marginBetweenWindows);
   const y =
-    index % 2 === 0 ? 0 : (baseWindowSize.x / prevRatio / currentRatio) + marginBetweenWindows;
+    index % 2 === 0
+      ? 0
+      : baseWindowSize.x / prevRatio / currentRatio + marginBetweenWindows;
   return { x, y };
 }
 
 onMounted(async () => {
   const apiRes = await loadApi();
-
-  console.log(apiRes)
 
   if (apiRes && apiRes?.projects) {
     windows.value = apiRes.projects.map((project, index) => {
@@ -528,7 +539,7 @@ onMounted(async () => {
         title: project.title,
         id: project.uid,
         selected: index === 0,
-        thumbnail: project.thumbnail.large,
+        thumbnail: project.thumbnail,
         open: false,
         hidden: false,
       };
@@ -546,29 +557,16 @@ onMounted(async () => {
     onPinch,
   });
 
-  window.addEventListener("resize", () => {
-    baseWindowSize.x = isMobile.value ? 250 : 500;
-    baseWindowSize.y = isMobile.value ? 250 : 500;
-    const { x, y, center, ratio } = getScreenDims();
-    screenSize.x = x;
-    isMobile.value = x < 600;
-    screenSize.y = y;
-    screenSize.center = center;
-    screenSize.ratio = ratio;
-    setInitalBoundaries();
-  });
+  window.addEventListener("resize", onResize);
 });
 
 onBeforeUnmount(() => {
   console.log("cancel frame", frameId);
   cancelAnimationFrame(frameId);
+  window.removeEventListener("resize", onResize);
   if (gestures) {
     gestures.destroy();
   }
-});
-
-window.addEventListener("resize", () => {
-  console.log("resize");
 });
 </script>
 

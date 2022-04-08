@@ -1,25 +1,28 @@
 <template>
-  <div
-    :class="{
-      window: true,
-      selected: props.selected,
-      hidden: props.hidden,
-      open: props.open,
-    }"
-    :id="String(props.id)"
-    :style="[transformStyle, windowStyle]"
-    :data-id="props.id"
-    ref="windowRef"
-  >
-    <div class="window-top" ref="windowTop">
-      <h2>{{ props.title }}</h2>
-      <WindowButton
-        text="open"
-        activeText="close"
-        :active="props.open"
-        :enabled="props.selected"
-        @click="onClick"
-      />
+  <div class="window__wrapper" :style="wrapperStyle" ref="windowRef">
+    <div
+      :class="{
+        window: true,
+        selected: props.selected,
+        hidden: props.hidden,
+        open: props.open,
+      }"
+      :id="String(props.id)"
+      :style="[transformStyle, windowStyle]"
+      :data-id="props.id"
+      ref="windowRef"
+    >
+      <Image class="window-image" :sources="thumbnail" :fill="!props.selected" />
+      <div class="window-top" ref="windowTop">
+        <h2>{{ props.title }}</h2>
+        <WindowButton
+          text="open"
+          activeText="close"
+          :active="props.open"
+          :enabled="props.selected"
+          @click="onClick"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -33,11 +36,15 @@ import {
   defineEmits,
   onMounted,
 } from "vue";
-import { Vector2, isBetween } from "@/utils/layout";
-import { ImageFormat } from "@/utils/api.types";
-import { createWindowTransformStyle } from "@/utils/layout";
-import GestureHandler from "@/utils/gesture";
+import { generateWindowSize, Vector2 } from "@/utils/layout";
+import { isBetween } from "@/utils/math";
+import { ImageFormats } from "@/utils/api.types";
+import {
+  createWindowTransformStyle,
+  createWindowWrapperRotation,
+} from "@/utils/layout";
 import WindowButton from "./WindowButton.vue";
+import Image from "./ui/Image.vue";
 import { ScreenDims } from "@/views/IndexView.vue";
 
 export interface Transform {
@@ -51,7 +58,7 @@ export interface WindowProps {
   title: string;
   id: number | string;
   selected?: boolean;
-  thumbnail: ImageFormat;
+  thumbnail: ImageFormats;
   velocity: Vector2;
   zoomFactor: number;
   open: boolean;
@@ -66,6 +73,10 @@ const windowTop = ref<HTMLElement | null>(null);
 
 const windowRef = ref<HTMLElement | null>(null);
 
+const windowWrapper = ref<HTMLElement | null>(null);
+
+let wrapperStyle = ref<string>("transform: rotate3d(0,0,0,0deg)");
+
 let prevStyle = "";
 
 const draggableTransformOffset = reactive<Vector2>({
@@ -78,11 +89,6 @@ const lastMousePos: Vector2 = {
   x: 0,
   y: 0,
 };
-
-// const baseSize = reactive<Vector2>({
-//   x: window.innerWidth < 600 ? 250 : 500,
-//   y: window.innerWidth < 600 ? 250 : 500,
-// });
 
 const size = reactive<Vector2>({ x: props.baseSize.x, y: props.baseSize.y });
 
@@ -115,50 +121,32 @@ const transformStyle = computed(() => {
   };
 
   if (isVisible(transform)) {
-    const style = createWindowTransformStyle(transform, center, props.velocity);
+    const style = createWindowTransformStyle(transform, center);
     prevStyle = style;
     return style;
   }
   return prevStyle;
-
-  // return createWindowTransformStyle(transform, center, props.velocity);
 });
 
-const defaultBg =
-  "https://images.unsplash.com/photo-1643293383951-0755fda59471?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1587&q=80";
+// watchEffect(() => {
+//   wrapperStyle.value = createWindowWrapperRotation(props.velocity);
+// });
 
 const windowStyle = computed(() => {
   return `
-    background-image: url(${props.thumbnail?.url || defaultBg});
     width: ${size.x}px;
     height: ${size.y}px;
   `;
 });
 
-// watchEffect(
-//   () => {
-//     if (windowRef.value) {
-//       windowRef.value.classList.toggle("selected", props.selected);
-//     }
-//   },
-//   {
-//     flush: "post",
-//   }
-// );
-
 watchEffect(() => {
-  const { width, height } = props.thumbnail;
-  const ratio = width / height;
+  const { aspectRatio } = props.thumbnail.large;
 
-  if (ratio > 1) {
-    size.x = props.baseSize.x * ratio + 41; // show whole image by compensating for tab bar
-    size.y = props.baseSize.y;
-  } else {
-    size.x = props.baseSize.x;
-    size.y = props.baseSize.y / ratio + 41;
-  }
-  translateOffset.value.x = size.x / 2;
-  translateOffset.value.y = size.y / 2;
+  const s = generateWindowSize(aspectRatio, props.baseSize);
+  size.x = s.x;
+  size.y = s.y;
+  translateOffset.value.x = s.x / 2;
+  translateOffset.value.y = s.y / 2;
 });
 
 function resetDraggableOffset() {
@@ -228,6 +216,10 @@ onMounted(() => {
 
 <style lang="sass">
 
+.window__wrapper
+  position: absolute
+  // transition: transform .8s ease-out 0s
+
 .window
   position: absolute
   min-height: 300px
@@ -293,7 +285,6 @@ onMounted(() => {
     .window-top
       background-color: $c-grey-6
       transition: background-color .3s linear, transform 0.3s ease-out .3s
-
 
       h2
         opacity: 1

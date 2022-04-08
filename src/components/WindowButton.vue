@@ -20,8 +20,7 @@ interface WindowButtonProps {
 }
 
 const props = defineProps<WindowButtonProps>();
-const emit = defineEmits([ "click" ]);
-
+const emit = defineEmits(["click"]);
 </script>
 
 <style lang="sass">
@@ -96,8 +95,7 @@ const emit = defineEmits([ "click" ]);
 
   &.active
     width: 67px
-    
+
   &.active::after
     background-color: $c-primary
-    
 </style>

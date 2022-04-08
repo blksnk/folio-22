@@ -1,9 +1,7 @@
-import { Transform, Vector2 } from '@/utils/layout'
-
+import { Transform, Vector2 } from "@/utils/layout";
 
 interface Window {
   transform: Transform;
-
 }
 
 interface WindowManagerOptions {

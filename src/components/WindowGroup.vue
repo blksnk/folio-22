@@ -17,7 +17,7 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect, reactive } from "vue";
 import { Vector2 } from "@/utils/layout";
-import { ImageFormat } from "@/utils/api";
+import { ImageFormat } from "@/utils/api.types";
 import { createWindowTransformStyle } from "@/utils/layout";
 import WindowButton from "./WindowButton.vue";
 
@@ -35,7 +35,7 @@ export interface WindowProps {
   thumbnail: ImageFormat;
   velocity: Vector2;
   zoomFactor: number;
-  open: boolean,
+  open: boolean;
 }
 
 const windowRef = ref<HTMLElement | null>(null);
@@ -57,7 +57,7 @@ const transformStyle = computed(() => {
   const center = {
     x: translateOffset.value.x,
     y: translateOffset.value.y + 46,
-  }
+  };
   return createWindowTransformStyle(props.transform, center, props.velocity);
 });
 

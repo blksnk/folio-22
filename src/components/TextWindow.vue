@@ -6,8 +6,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
-import { Vector2, Transform, WINDOW_WIDTH, createWindowTransformStyle } from '@/utils/layout'
+import { computed } from "vue";
+import {
+  Vector2,
+  Transform,
+  WINDOW_WIDTH,
+  createWindowTransformStyle,
+} from "@/utils/layout";
 
 export interface TextWindowProps {
   transform?: Transform;

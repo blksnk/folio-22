@@ -13,14 +13,11 @@ export default {
   },
   setup() {
     // const store = useApiData();
-
     // setTimeout(() => loadApi(store), 500);
-
     // return {
     //   store,
     // };
   },
-  
 };
 </script>
 

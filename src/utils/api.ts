@@ -111,7 +111,6 @@ export const formatProjectTexts = ({
   }));
 
 export const formatProjects = (projects: Project_Raw[]): Project[] => {
-  console.log(projects);
   return projects
     .map(({ attributes }) => {
       const { title, uid, type, thumbnail, index, tags, media, texts } =
@@ -133,9 +132,7 @@ export const formatProjects = (projects: Project_Raw[]): Project[] => {
 export const loadApi = async () => {
   try {
     const projects = await fetchProjects();
-    console.log(projects);
     const formattedProjects = formatProjects(projects.data);
-    // console.log(formattedProjects);
 
     // if (storeReference) {
     //   storeReference.$patch({

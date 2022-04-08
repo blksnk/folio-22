@@ -1,5 +1,5 @@
 import { reactive } from "vue";
-import { Vector2 } from '@/utils/layout'
+import { Vector2 } from "@/utils/layout";
 
 type func = () => void;
 
@@ -51,7 +51,7 @@ class GestureHandler {
     if (options.onWheel) {
       this.onWheel = options.onWheel;
     }
-    if(options.onPinch) {
+    if (options.onPinch) {
       this.onPinch = options.onPinch;
     }
 
@@ -67,7 +67,9 @@ class GestureHandler {
     this.target.addEventListener("touchend", this._onTouchEnd.bind(this));
     this.target.addEventListener("touchcancel", this._onTouchCancel.bind(this));
     this.target.addEventListener("touchleave", this._onTouchEnd.bind(this));
-    this.target.addEventListener("touchmove", this._onTouchMove.bind(this), { passive: false });
+    this.target.addEventListener("touchmove", this._onTouchMove.bind(this), {
+      passive: false,
+    });
 
     this.target.addEventListener("wheel", this._onWheel.bind(this));
   }
@@ -187,7 +189,7 @@ class GestureHandler {
     // handle pinch
     this.multitouch = this.touches.length > 1;
     this.touchPositions = this.getTouchPositions(this.touches);
-    if(this.multitouch) {
+    if (this.multitouch) {
       this.handleMultitouch();
     }
     if (this.onTouch) {

@@ -21,7 +21,7 @@ export interface DebugProps {
 const props = defineProps<DebugProps>();
 
 function formatLine(l: string | object): string {
-  console.log(typeof l)
+  console.log(typeof l);
   return typeof l === "object" ? JSON.stringify(l) : l;
 }
 
@@ -54,7 +54,7 @@ const lines = computed(() => {
 
   #debug__title
     text-decoration: underline
-  
+
   code
     width: 100%
 </style>
