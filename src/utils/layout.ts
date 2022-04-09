@@ -1,5 +1,6 @@
 import { clamp } from "@/utils/math";
-import { WindowData } from "@/views/IndexView.vue";
+import { Project } from "@/utils/api.types";
+import { WindowData } from "@/utils/layout.types";
 
 export interface Vector2 {
   [key: string]: number | Vector2;
@@ -24,6 +25,11 @@ export type Boundary = {
   left: number;
   right: number;
 };
+
+export interface WindowPosition extends Boundary {
+  width: number;
+  height: number;
+}
 
 export const WINDOW_WIDTH = window.innerWidth < 600 ? 250 : 500;
 const ROTATION_AMOUNT = "35deg";
@@ -85,8 +91,8 @@ export const generateWindowSize = (
     y: 0,
   };
   // show whole image by compensating for tab bar
-  size.x = aspectRatio > 1 ? baseSize.x * aspectRatio + 41 : baseSize.x;
-  size.y = aspectRatio > 1 ? baseSize.y : baseSize.y / aspectRatio + 41;
+  size.x = aspectRatio > 1 ? baseSize.x * aspectRatio : baseSize.x;
+  size.y = aspectRatio > 1 ? baseSize.y + 41 : baseSize.y / aspectRatio + 41;
   return size;
 };
 
@@ -121,8 +127,6 @@ export const createBoundaries = (
     };
   });
 
-  console.log(windowPositions, bounds);
-
   windowPositions.forEach((window) => {
     const top = window.top < bounds.top ? window.top : bounds.top;
     const bottom =
@@ -141,7 +145,6 @@ export const createBoundaries = (
   bounds.bottom += buffer.y;
   bounds.left -= buffer.x;
   bounds.right += buffer.x;
-  console.warn(bounds);
   return bounds;
 };
 
@@ -151,4 +154,103 @@ export const isInBoundaries = (
 ): boolean => {
   console.log(translatePosition, bounds);
   return true;
+};
+
+export const keepInBoundaries = (
+  translatePosition: Vector2,
+  bounds: Boundary
+): void => {
+  console.log(translatePosition, bounds);
+};
+
+const generateWindowPosition = (
+  currentWindowSize: Vector2,
+  windowPositions: WindowPosition[],
+  index: number,
+  margin: number
+): WindowPosition => {
+  const prevWindowPos = windowPositions[windowPositions.length - 1] || {
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 0,
+    width: 0,
+  };
+  const isTopWindow = index % 2 === 0;
+  const top = isTopWindow ? 0 : prevWindowPos.height + margin;
+  const bottom = top + currentWindowSize.y;
+  const left = isTopWindow
+    ? prevWindowPos.right + margin
+    : prevWindowPos.left +
+      Math.max(currentWindowSize.x - prevWindowPos.width, 0) / 2;
+  const right = left + currentWindowSize.x;
+
+  return {
+    top,
+    bottom,
+    left,
+    right,
+    width: currentWindowSize.x,
+    height: currentWindowSize.y,
+  };
+};
+
+export const generateWindowPositions = (
+  projects: Project[],
+  baseWindowSize: Vector2
+): WindowPosition[] => {
+  const windowSizes: Vector2[] = [];
+  const windowPositions: WindowPosition[] = [];
+  projects.forEach((project, index) => {
+    const currentWindowSize = generateWindowSize(
+      project.thumbnail.original.aspectRatio,
+      baseWindowSize
+    );
+    const position = generateWindowPosition(
+      currentWindowSize,
+      windowPositions,
+      index,
+      baseWindowSize.x / 8
+    );
+    // TODO: increment first position by screenSize.center
+    windowSizes.push(currentWindowSize);
+    windowPositions.push(position);
+  });
+
+  return windowPositions;
+};
+
+export const createProjectWindows = (
+  projects: Project[],
+  baseWindowSize: Vector2
+): WindowData[] => {
+  // const windows = [];
+  const positions = generateWindowPositions(projects, baseWindowSize);
+  console.log(positions);
+  const windows = projects.map(({ title, uid, thumbnail }, index) => {
+    const pos = positions[index];
+
+    const initialPosition = {
+      x: pos.left,
+      y: pos.top,
+    };
+    const transform = {
+      ...initialPosition,
+      scale: 1,
+    };
+    return {
+      transform,
+      targetTransform: transform,
+      initialPosition,
+      transformPreZoom: initialPosition,
+      title,
+      id: uid,
+      selected: index === 0,
+      thumbnail,
+      open: false,
+      hidden: false,
+    };
+  });
+  return windows;
 };

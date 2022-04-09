@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed } from "vue";
 import { ScreenDims } from "@/views/IndexView.vue";
 import { Vector2 } from "@/utils/layout";
 
@@ -43,7 +43,7 @@ interface MinimapItemProps {
 const props = defineProps<MinimapProps>();
 
 const HEIGHT = 150;
-const SCALE_FACTOR = 5;
+const SCALE_FACTOR = 6;
 const ITEM_SIZE = HEIGHT / SCALE_FACTOR;
 
 const WIDTH = computed(() => HEIGHT * props.screenSize.ratio);
@@ -72,11 +72,6 @@ const minimapItemStyles = computed<MinimapItemProps[]>(() =>
       id,
       hidden,
     }))
-);
-
-watch(
-  () => props.screenSize,
-  () => console.log(props.screenSize)
 );
 
 const minimapStyle = computed(

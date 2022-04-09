@@ -3,11 +3,12 @@
     :class="{
       ui__image: true,
       fill: props.fill,
-      }"
+      showcase: props.showcase,
+    }"
     :srcset="srcset"
     :sizes="sizes"
     :src="defaultSrc"
-    alt=""
+    :alt="alt"
     ref="imgRef"
   />
 </template>
@@ -20,6 +21,7 @@ interface ImageProps {
   sources: ImageFormats;
   alt?: string;
   fill: boolean;
+  showcase: boolean;
 }
 
 const imgRef = ref<HTMLImageElement>();
@@ -53,9 +55,10 @@ const sizes = computed(() =>
 </script>
 
 <style lang="sass">
+
 .ui__image
   image-rendering: crisp-edges
-  image-rendering:  -webkit-optimize-contrast
+  image-rendering: -webkit-optimize-contrast
   width: 100%
   height: 100%
   object-fit: contain
@@ -68,4 +71,8 @@ const sizes = computed(() =>
   &.fill
     transform: translateY(0px) scale(1.1)
     transition: transform .6s ease-out 0s
+
+  &.showcase
+    transform: translateY(0px) scale(1) !important
+    transition: transform .3s ease-out 0s
 </style>

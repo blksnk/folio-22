@@ -12,7 +12,12 @@
       :data-id="props.id"
       ref="windowRef"
     >
-      <Image class="window-image" :sources="thumbnail" :fill="!props.selected" />
+      <Image
+        class="window-image"
+        :sources="thumbnail"
+        :fill="!props.selected"
+        :showcase="props.open"
+      />
       <div class="window-top" ref="windowTop">
         <h2>{{ props.title }}</h2>
         <WindowButton
@@ -143,6 +148,9 @@ watchEffect(() => {
   const { aspectRatio } = props.thumbnail.large;
 
   const s = generateWindowSize(aspectRatio, props.baseSize);
+  if (props.open) {
+    s.y -= 41;
+  }
   size.x = s.x;
   size.y = s.y;
   translateOffset.value.x = s.x / 2;
@@ -228,10 +236,7 @@ onMounted(() => {
   border: $b-width solid $c-grey-6
   border-radius: $b-radius
   overflow: hidden
-  background-position: center center
-  background-size: cover
-  // filter: blur(10px)
-  transition: filter .2s ease-out 0s, background-position .3s ease-in-out 0s, opacity .6s linear 0s
+  transition: filter .2s ease-out 0s, background-position .3s ease-in-out 0s, opacity .6s linear 0s, height .6s linear 0s
   box-shadow: 0px 4px 24px 6px rgba(0, 0, 0, .25)
   user-select: none
   cursor: pointer

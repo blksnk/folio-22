@@ -64,7 +64,7 @@ import Minimap from "@/components/Minimap.vue";
 
 // import { useApiData } from "@/stores/apiData";
 import GestureHandler from "@/utils/gesture";
-import { Vector2, createBoundaries } from "@/utils/layout";
+import { Vector2, createBoundaries, Boundary, keepInBoundaries, createProjectWindows } from "@/utils/layout";
 import { loadApi } from "@/utils/api";
 import MouseCursor from "@/components/MouseCursor.vue";
 import { ImageFormats } from "@/utils/api.types";
@@ -112,7 +112,7 @@ let showCursor = ref(false);
 
 let velocity = reactive<Vector2>({ x: 0, y: 0 });
 
-let minMoveFactor = 0.5;
+let minMoveFactor = 0.4;
 let dragFactor = 0.9;
 let frameId = 0;
 let translating = reactive({ value: false });
@@ -125,9 +125,11 @@ let dragDezooming = false;
 
 let debugLine = reactive<Vector2>({ x: 0, y: 0 });
 let windows = ref<WindowData[]>([]);
-const initialBoundaries = reactive<CanvasBoundaries>({
-  min: { x: 0, y: 0 },
-  max: { x: 0, y: 0 },
+const initialBoundaries = reactive<Boundary>({
+  top: -10000,
+  bottom: 10000,
+  left: -10000,
+  right: 10000,
 });
 
 const windowOpen = computed(() =>
@@ -140,17 +142,18 @@ const openWindow = computed(() =>
 
 // takes zoom into account
 const effectiveBoundaries = computed(() => {
-  const zoomComp = 3 - zoomFactor.value;
-  return {
-    min: {
-      x: -initialBoundaries.min.x * zoomComp,
-      y: -initialBoundaries.min.y * zoomComp,
-    },
-    max: {
-      x: -initialBoundaries.max.x * zoomComp,
-      y: -initialBoundaries.max.y * zoomComp,
-    },
-  };
+  // const zoomComp = 3 - zoomFactor.value;
+  // return {
+  //   min: {
+  //     x: -initialBoundaries.min.x * zoomComp,
+  //     y: -initialBoundaries.min.y * zoomComp,
+  //   },
+  //   max: {
+  //     x: -initialBoundaries.max.x * zoomComp,
+  //     y: -initialBoundaries.max.y * zoomComp,
+  //   },
+  // };
+  return initialBoundaries
 });
 
 const initPositionVariation: Vector2 = {
@@ -158,7 +161,7 @@ const initPositionVariation: Vector2 = {
   y: screenSize.x < 600 ? 200 : 500,
 };
 
-const translatePosition = reactive<Vector2>({ x: screenSize.center.x, y: 0 });
+const translatePosition = reactive<Vector2>({ x: 0, y: 0 });
 
 const selectedWindow = computed(() =>
   windows.value.find((el) => el.id === selectedId.id)
@@ -239,33 +242,33 @@ function onEnd(): void {
   mouseDown = false;
 }
 
-function keepInBounds() {
-  const bounds = effectiveBoundaries.value;
-  let diffX = 0;
-  let diffY = 0;
-  if (translatePosition.x > bounds.min.x) {
-    diffX = -10;
-  }
-  if (translatePosition.x < bounds.max.x) {
-    diffX = 10;
-  }
-  if (translatePosition.y > bounds.min.y) {
-    diffY = -10;
-  }
-  if (translatePosition.y < bounds.max.y) {
-    diffY = 10;
-  }
-  if (diffX || diffY) {
-    console.log("BOUNDARY BREAK");
-    if (screenSize.x < 600) {
-      diffX *= 0.75;
-      diffY *= 0.5;
-    }
-    mouseDown = false;
-    velocity.x += diffX;
-    velocity.y += diffY;
-  }
-}
+// function keepInBounds() {
+//   const bounds = effectiveBoundaries.value;
+//   let diffX = 0;
+//   let diffY = 0;
+//   if (translatePosition.x > bounds.min.x) {
+//     diffX = -10;
+//   }
+//   if (translatePosition.x < bounds.max.x) {
+//     diffX = 10;
+//   }
+//   if (translatePosition.y > bounds.min.y) {
+//     diffY = -10;
+//   }
+//   if (translatePosition.y < bounds.max.y) {
+//     diffY = 10;
+//   }
+//   if (diffX || diffY) {
+//     console.log("BOUNDARY BREAK");
+//     if (screenSize.x < 600) {
+//       diffX *= 0.75;
+//       diffY *= 0.5;
+//     }
+//     mouseDown = false;
+//     velocity.x += diffX;
+//     velocity.y += diffY;
+//   }
+// }
 
 function onMove({ x, y }: Vector2): void {
   targetMousePos.x = x;
@@ -423,12 +426,13 @@ function animate(): void {
   translateToTargetPos();
   translateCursor();
   // keepInBounds();
+  // keepInBoundaries(translatePosition, effectiveBoundaries.value);
   decreaseVelocity(translating ? dragFactor : 0);
 }
 
-function randomOffset(n: number) {
-  return Math.random() * n * 2 - Math.random() * n;
-}
+// function randomOffset(n: number) {
+//   return Math.random() * n * 2 - Math.random() * n;
+// }
 
 const minimapItems = computed(() =>
   windows.value.map(({ transform, thumbnail, selected, id, hidden }) => ({
@@ -445,38 +449,38 @@ const minimapItems = computed(() =>
   }))
 );
 
-function getBoundaries(
-  windows: WindowData[],
-  buffer: Vector2 = screenSize.center
-) {
-  const { max, min } = windows.reduce(
-    (acc, { initialPosition }) => {
-      return {
-        max: {
-          x: initialPosition.x > acc.max.x ? initialPosition.x : acc.max.x,
-          y: initialPosition.y > acc.max.y ? initialPosition.y : acc.max.y,
-        },
-        min: {
-          x: initialPosition.x < acc.min.x ? initialPosition.x : acc.min.x,
-          y: initialPosition.y < acc.min.y ? initialPosition.y : acc.min.y,
-        },
-      };
-    },
-    { ...initialBoundaries }
-  );
-  return {
-    max: {
-      x: max.x + initPositionVariation.x,
-      y: max.y + initPositionVariation.y,
-    },
-    min: {
-      x: min.x - buffer.x,
-      y: min.y - initPositionVariation.y,
-    },
-  };
-}
+// function getBoundaries(
+//   windows: WindowData[],
+//   buffer: Vector2 = screenSize.center
+// ) {
+//   const { max, min } = windows.reduce(
+//     (acc, { initialPosition }) => {
+//       return {
+//         max: {
+//           x: initialPosition.x > acc.max.x ? initialPosition.x : acc.max.x,
+//           y: initialPosition.y > acc.max.y ? initialPosition.y : acc.max.y,
+//         },
+//         min: {
+//           x: initialPosition.x < acc.min.x ? initialPosition.x : acc.min.x,
+//           y: initialPosition.y < acc.min.y ? initialPosition.y : acc.min.y,
+//         },
+//       };
+//     },
+//     { ...initialBoundaries }
+//   );
+//   return {
+//     max: {
+//       x: max.x + initPositionVariation.x,
+//       y: max.y + initPositionVariation.y,
+//     },
+//     min: {
+//       x: min.x - buffer.x,
+//       y: min.y - initPositionVariation.y,
+//     },
+//   };
+// }
 
-function onResize() {
+const onResize = debounce(() => {
   baseWindowSize.x = isMobile.value ? 250 : 500;
   baseWindowSize.y = isMobile.value ? 250 : 500;
   const { x, y, center, ratio } = getScreenDims();
@@ -486,17 +490,20 @@ function onResize() {
   screenSize.center = center;
   screenSize.ratio = ratio;
   setInitalBoundaries();
-}
+}, 500);
 
 function setInitalBoundaries() {
-  const { max, min } = getBoundaries(windows.value, {
-    x: screenSize.center.x,
-    y: screenSize.center.y,
-  });
-  createBoundaries(windows.value, baseWindowSize)
-  initialBoundaries.min = min;
-  initialBoundaries.max = max;
-  console.log(initialBoundaries);
+  // const { max, min } = getBoundaries(windows.value, {
+  //   x: screenSize.center.x,
+  //   y: screenSize.center.y,
+  // });
+  const bounds = createBoundaries(windows.value, baseWindowSize);
+  initialBoundaries.top = bounds.top;
+  initialBoundaries.bottom = bounds.bottom;
+  initialBoundaries.left = bounds.left;
+  initialBoundaries.right = bounds.right;
+
+  console.log(bounds);
 }
 
 function initialWindowPosition(
@@ -518,32 +525,7 @@ onMounted(async () => {
   const apiRes = await loadApi();
 
   if (apiRes && apiRes?.projects) {
-    windows.value = apiRes.projects.map((project, index) => {
-      const initPos = initialWindowPosition(
-        index,
-        index > 0
-          ? apiRes.projects[index - 1].thumbnail.original.aspectRatio
-          : 0,
-        project.thumbnail.original.aspectRatio
-      );
-      const transform = {
-        ...initPos,
-        scale: 1,
-      };
-
-      return {
-        transform,
-        targetTransform: transform,
-        initialPosition: initPos,
-        transformPreZoom: initPos,
-        title: project.title,
-        id: project.uid,
-        selected: index === 0,
-        thumbnail: project.thumbnail,
-        open: false,
-        hidden: false,
-      };
-    });
+    windows.value = createProjectWindows(apiRes.projects, baseWindowSize)
   }
   setInitalBoundaries();
   animate();
@@ -561,7 +543,6 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  console.log("cancel frame", frameId);
   cancelAnimationFrame(frameId);
   window.removeEventListener("resize", onResize);
   if (gestures) {
