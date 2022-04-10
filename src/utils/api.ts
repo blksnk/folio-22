@@ -27,8 +27,11 @@ export type ProjectTag = {
 
 export const client = async (endpoint: string) => {
   try {
-    const url = `${API_URL}${endpoint}`;
+    const url = `${
+      API_URL || "https://art-folio-api.herokuapp.com/api/"
+    }${endpoint}`;
     const res = await fetch(url, { method: "GET" });
+    console.log(res);
     return await res.json();
   } catch (e) {
     console.error(e);
@@ -41,7 +44,7 @@ const projectQuery = qs.stringify({
 });
 
 export const fetchProjects = async (): Promise<ProjectsResponse_Raw> =>
-  await client(`projects?${projectQuery}`);
+  (await client(`projects?${projectQuery}`)) as ProjectsResponse_Raw;
 
 export const extractProjectType = ({
   data,
@@ -132,6 +135,7 @@ export const formatProjects = (projects: Project_Raw[]): Project[] => {
 export const loadApi = async () => {
   try {
     const projects = await fetchProjects();
+    console.log(projects);
     const formattedProjects = formatProjects(projects.data);
 
     // if (storeReference) {

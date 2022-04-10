@@ -64,34 +64,12 @@ import Minimap from "@/components/Minimap.vue";
 
 // import { useApiData } from "@/stores/apiData";
 import GestureHandler from "@/utils/gesture";
-import { Vector2, createBoundaries, Boundary, keepInBoundaries, createProjectWindows } from "@/utils/layout";
+import { createBoundaries, keepInBoundaries, createProjectWindows } from "@/utils/layout";
+import { WindowData, ScreenDims, Boundary, Vector2 } from "@/utils/layout.types"
 import { loadApi } from "@/utils/api";
 import MouseCursor from "@/components/MouseCursor.vue";
 import { ImageFormats } from "@/utils/api.types";
 import { clamp, getScaleCoef, largestAbsolute, isBetween } from "@/utils/math";
-
-export interface ScreenDims extends Vector2 {
-  center: Vector2;
-  ratio: number;
-}
-
-export interface WindowData {
-  transform: Transform;
-  targetTransform: Transform;
-  title: string;
-  id: number | string;
-  selected: boolean;
-  thumbnail: ImageFormats;
-  initialPosition: Vector2;
-  transformPreZoom: Vector2;
-  open: boolean;
-  hidden: boolean;
-}
-
-interface CanvasBoundaries {
-  min: Vector2;
-  max: Vector2;
-}
 
 let screenSize = reactive<ScreenDims>(getScreenDims());
 

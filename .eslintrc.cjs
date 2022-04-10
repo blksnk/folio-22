@@ -12,4 +12,8 @@ module.exports = {
   env: {
     "vue/setup-compiler-macros": true,
   },
+  rules: {
+    "array-bracket-spacing": [ 'error', 'always' ],
+    quotes: [ 'warning', 'single']
+  }
 };

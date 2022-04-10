@@ -66,13 +66,13 @@ const sizes = computed(() =>
   user-select: none
   pointer-events: none
   transform: translateY(20.5px) scale(1)
-  transition: transform .6s ease-in-out 0s
+  transition: transform .6s ease-in-out .6s
 
   &.fill
     transform: translateY(0px) scale(1.1)
     transition: transform .6s ease-out 0s
 
   &.showcase
-    transform: translateY(0px) scale(1) !important
+    transform: translateY(0px) scale(1)
     transition: transform .3s ease-out 0s
 </style>
