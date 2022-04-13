@@ -31,7 +31,6 @@ export const client = async (endpoint: string) => {
       API_URL || "https://art-folio-api.herokuapp.com/api/"
     }${endpoint}`;
     const res = await fetch(url, { method: "GET" });
-    console.log(res);
     return await res.json();
   } catch (e) {
     console.error(e);

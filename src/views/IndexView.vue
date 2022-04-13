@@ -1,19 +1,19 @@
 <template>
   <FixedFrame
     class="dotted"
-    @close="onClose()"
-    :displayTitle="windowOpen"
+    @close="() => onClose(openWindow?.id)"
+    :displayTitle="isWindowOpen"
     :title="openWindow?.title"
   >
     <Window
-      v-for="window in windows"
+      v-for="window in allWindows"
       :key="window.id"
       :title="window.title"
       :transform="window.transform"
       :id="window.id"
       :selected="window.selected"
       :thumbnail="window.thumbnail"
-      :open="window.open"
+      :open="window.open || isMediaWindow(window.id)"
       :velocity="velocity"
       :zoomFactor="zoomFactor.value"
       :hidden="window.hidden"
@@ -52,6 +52,7 @@ import {
   onMounted,
   computed,
   ref,
+  watch,
   watchEffect,
 } from "vue";
 import { debounce } from "lodash";
@@ -60,16 +61,30 @@ import { debounce } from "lodash";
 import FixedFrame from "@/components/FixedFrame.vue";
 import Window, { Transform } from "@/components/Window.vue";
 import Minimap from "@/components/Minimap.vue";
+import MouseCursor from "@/components/MouseCursor.vue";
+import SelectedProjectWindows from "@/components/SelectedProjectWindows.vue";
 // import Debug from "@/components/Debug.vue";
 
 // import { useApiData } from "@/stores/apiData";
 import GestureHandler from "@/utils/gesture";
-import { createBoundaries, keepInBoundaries, createProjectWindows } from "@/utils/layout";
-import { WindowData, ScreenDims, Boundary, Vector2 } from "@/utils/layout.types"
+import {
+  createBoundaries,
+  keepInBoundaries,
+  createProjectWindows,
+  createMediaWindows,
+  createAllProjectsMediaWindows,
+  isMediaWindow,
+} from "@/utils/layout";
+import {
+  WindowData,
+  ScreenDims,
+  Boundary,
+  Vector2,
+  ProjectMediaWindows,
+} from "@/utils/layout.types";
 import { loadApi } from "@/utils/api";
-import MouseCursor from "@/components/MouseCursor.vue";
-import { ImageFormats } from "@/utils/api.types";
 import { clamp, getScaleCoef, largestAbsolute, isBetween } from "@/utils/math";
+import { Project, uid } from "@/utils/api.types";
 
 let screenSize = reactive<ScreenDims>(getScreenDims());
 
@@ -80,8 +95,6 @@ const baseWindowSize = reactive<Vector2>({
   y: isMobile.value ? 250 : 500,
 });
 
-const marginBetweenWindows = baseWindowSize.x / 4;
-
 let mouseDown = false;
 let lastMousePos: Vector2 = { x: 0, y: 0 };
 let mousePos = reactive<Vector2>({ x: 0, y: 0 });
@@ -90,7 +103,7 @@ let showCursor = ref(false);
 
 let velocity = reactive<Vector2>({ x: 0, y: 0 });
 
-let minMoveFactor = 0.4;
+let minMoveFactor = 0.55;
 let dragFactor = 0.9;
 let frameId = 0;
 let translating = reactive({ value: false });
@@ -103,20 +116,31 @@ let dragDezooming = false;
 
 let debugLine = reactive<Vector2>({ x: 0, y: 0 });
 let windows = ref<WindowData[]>([]);
+let PROJECTS = ref<Project[]>([]);
 const initialBoundaries = reactive<Boundary>({
   top: -10000,
   bottom: 10000,
   left: -10000,
   right: 10000,
 });
+const projectMediaWindows = ref<ProjectMediaWindows[]>([]);
+// const selectedProjectMediaWindows = computed<WindowData[]>(
+//   () => projectMediaWindows.value[selectedWindow.value?.id || "NO_OPEN"] || []
+// );
 
-const windowOpen = computed(() =>
+const isWindowOpen = computed<boolean>(() =>
   windows.value.some((el: WindowData) => el.open)
 );
 
-const openWindow = computed(() =>
+const openWindow = computed<WindowData | undefined>(() =>
   windows.value.find((el: WindowData) => el.open)
 );
+const allWindows = ref<WindowData[]>([]);
+
+const selectedWindow = computed<WindowData | undefined>(() =>
+  allWindows.value.find((el) => el.id === selectedId.id)
+);
+
 
 // takes zoom into account
 const effectiveBoundaries = computed(() => {
@@ -131,19 +155,10 @@ const effectiveBoundaries = computed(() => {
   //     y: -initialBoundaries.max.y * zoomComp,
   //   },
   // };
-  return initialBoundaries
+  return initialBoundaries;
 });
 
-const initPositionVariation: Vector2 = {
-  x: screenSize.x < 600 ? 50 : 300,
-  y: screenSize.x < 600 ? 200 : 500,
-};
-
 const translatePosition = reactive<Vector2>({ x: 0, y: 0 });
-
-const selectedWindow = computed(() =>
-  windows.value.find((el) => el.id === selectedId.id)
-);
 
 function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   return Math.max(
@@ -153,13 +168,13 @@ function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   );
 }
 
-function tranformWindowsOnDrag(vel: Vector2): void {
+function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
   const zoom = zoomFactor.value;
   const zoomInvert = 1 - zoom;
   translatePosition.x += vel.x * (2 - zoom);
   translatePosition.y += vel.y * (2 - zoom);
 
-  windows.value.forEach((window, index) => {
+  [...windows].forEach((window, index) => {
     const { x, y } = window.transform;
 
     const offsetFromCenter: Vector2 = {
@@ -169,9 +184,10 @@ function tranformWindowsOnDrag(vel: Vector2): void {
     const scale = getScaleCoef(offsetFromCenter);
     // select window if centered
     if (
-      isBetween(offsetFromCenter.x, 0.5, 0.575) &&
+      isBetween(offsetFromCenter.x, 0.5, 0.7) &&
       isBetween(offsetFromCenter.y, 0.5, 0.7) &&
-      !translating.value
+      !translating.value &&
+      !isMediaWindow(window.id)
     ) {
       setWindowSelection(window.id);
     }
@@ -185,31 +201,22 @@ function tranformWindowsOnDrag(vel: Vector2): void {
   });
 }
 
-function applyWindowTransforms() {
-  windows.value.forEach((window) => {
-    window.transform.x +=
-      (window.targetTransform.x - window.transform.x) / dragFactor;
-    window.transform.y +=
-      (window.targetTransform.y - window.transform.y) / dragFactor;
-  });
-}
-
 function onStart({ x, y }: Vector2): void {
   // wait for a click on window. if no click, toggle zoom animation on move
-  if (!windowOpen.value) {
-    if (!translating.value && !windowOpen.value && !dragDezooming) {
-      setTimeout(() => {
-        if (!dragDezooming && mouseDown) {
-          dragDezooming = true;
-          preTranslateZoomTarget = zoomTarget;
-          zoomTarget = preTranslateZoomTarget * 0.8;
-        }
-      }, 100);
-    }
-    lastMousePos.x = x;
-    lastMousePos.y = y;
-    mouseDown = true;
+  // if (!isWindowOpen.value) {
+  if (!translating.value && !isWindowOpen.value && !dragDezooming) {
+    setTimeout(() => {
+      if (!dragDezooming && mouseDown) {
+        dragDezooming = true;
+        preTranslateZoomTarget = zoomTarget;
+        zoomTarget = preTranslateZoomTarget * 0.8;
+      }
+    }, 100);
   }
+  lastMousePos.x = x;
+  lastMousePos.y = y;
+  mouseDown = true;
+  // }
 }
 
 function onEnd(): void {
@@ -258,7 +265,9 @@ function onMove({ x, y }: Vector2): void {
     const deltaY: number = y - lastMousePos.y;
 
     velocity.x = deltaX * (2 - zoomFactor.value);
-    velocity.y = deltaY * (2 - zoomFactor.value);
+    if(!isWindowOpen.value) {
+      velocity.y = deltaY * (2 - zoomFactor.value);
+    }
   }
   lastMousePos.x = x;
   lastMousePos.y = y;
@@ -295,32 +304,57 @@ function setWindowSelection(selectId: number | string) {
   });
 }
 
-function onOpen(windowId: number | string) {
+const showSelectedProjectMediaWindows = (openWindowId: string) => {
+  const selectedProjectMediaUids =
+    PROJECTS.value
+      .find((p) => p.uid === openWindowId)
+      ?.media.map(({ uid }) => uid) || [];
+  const mediaWindows = allWindows.value.filter(({ id }) =>
+    selectedProjectMediaUids.includes(id)
+  );
+  mediaWindows.forEach((window) => {
+    window.hidden = false;
+  });
+};
+
+const hideAllProjectMediaWindows = () => {
+  allWindows.value
+    .filter(({ id }) => id.includes("media"))
+    .forEach((window) => {
+      window.hidden = true;
+    });
+};
+
+function onOpen(windowId: string) {
   setWindowSelection(windowId);
   console.log("open", windowId);
   zoomTarget = 0.9;
   translating.value = true;
 
   windows.value.forEach((window) => {
-    const openWindow = window.id === windowId;
+    const isOpen = window.id === windowId;
     window.open = window.id === windowId;
     // hide other windows
-    if (!openWindow) {
+    if (!isOpen) {
       window.hidden = true;
       // hideWindowIfNeeded(window);
     }
   });
+
+  showSelectedProjectMediaWindows(windowId);
 }
 
-function onClose() {
+function onClose(windowId: string) {
   windows.value.forEach((window: WindowData) => {
     window.open = false;
     window.hidden = false;
   });
+  hideAllProjectMediaWindows();
+  selectWindow(windowId, false);
 }
 
 function getWindowById(windowId: number | string) {
-  return windows.value.find(({ id }) => id === windowId);
+  return allWindows.value.find(({ id }) => id === windowId);
 }
 
 const selectWindow = (
@@ -385,8 +419,8 @@ function translateCursor() {
   mousePos.y += (targetMousePos.y - mousePos.y) * 0.15;
 }
 
-function onMouseOver(windowId: number | string) {
-  if (selectedId.id !== windowId) {
+function onMouseOver(windowId: string) {
+  if (selectedId.id !== windowId && !isMediaWindow(windowId)) {
     showCursor.value = true;
   }
 }
@@ -400,7 +434,7 @@ function onMouseLeave() {
 function animate(): void {
   frameId = requestAnimationFrame(animate);
   applyZoom();
-  tranformWindowsOnDrag(velocity);
+  tranformWindowsOnDrag(velocity, allWindows.value);
   translateToTargetPos();
   translateCursor();
   // keepInBounds();
@@ -408,12 +442,8 @@ function animate(): void {
   decreaseVelocity(translating ? dragFactor : 0);
 }
 
-// function randomOffset(n: number) {
-//   return Math.random() * n * 2 - Math.random() * n;
-// }
-
 const minimapItems = computed(() =>
-  windows.value.map(({ transform, thumbnail, selected, id, hidden }) => ({
+  allWindows.value.map(({ transform, thumbnail, selected, id, hidden }) => ({
     transform: {
       x: transform.x,
       y: transform.y,
@@ -426,37 +456,6 @@ const minimapItems = computed(() =>
     id,
   }))
 );
-
-// function getBoundaries(
-//   windows: WindowData[],
-//   buffer: Vector2 = screenSize.center
-// ) {
-//   const { max, min } = windows.reduce(
-//     (acc, { initialPosition }) => {
-//       return {
-//         max: {
-//           x: initialPosition.x > acc.max.x ? initialPosition.x : acc.max.x,
-//           y: initialPosition.y > acc.max.y ? initialPosition.y : acc.max.y,
-//         },
-//         min: {
-//           x: initialPosition.x < acc.min.x ? initialPosition.x : acc.min.x,
-//           y: initialPosition.y < acc.min.y ? initialPosition.y : acc.min.y,
-//         },
-//       };
-//     },
-//     { ...initialBoundaries }
-//   );
-//   return {
-//     max: {
-//       x: max.x + initPositionVariation.x,
-//       y: max.y + initPositionVariation.y,
-//     },
-//     min: {
-//       x: min.x - buffer.x,
-//       y: min.y - initPositionVariation.y,
-//     },
-//   };
-// }
 
 const onResize = debounce(() => {
   baseWindowSize.x = isMobile.value ? 250 : 500;
@@ -471,42 +470,35 @@ const onResize = debounce(() => {
 }, 500);
 
 function setInitalBoundaries() {
-  // const { max, min } = getBoundaries(windows.value, {
-  //   x: screenSize.center.x,
-  //   y: screenSize.center.y,
-  // });
   const bounds = createBoundaries(windows.value, baseWindowSize);
   initialBoundaries.top = bounds.top;
   initialBoundaries.bottom = bounds.bottom;
   initialBoundaries.left = bounds.left;
   initialBoundaries.right = bounds.right;
-
-  console.log(bounds);
-}
-
-function initialWindowPosition(
-  index: number,
-  prevRatio: number,
-  currentRatio: number
-): Vector2 {
-  const x =
-    (index % 2 === 0 ? index : index - 1) *
-    (baseWindowSize.x / 2 + marginBetweenWindows);
-  const y =
-    index % 2 === 0
-      ? 0
-      : baseWindowSize.x / prevRatio / currentRatio + marginBetweenWindows;
-  return { x, y };
 }
 
 onMounted(async () => {
   const apiRes = await loadApi();
 
   if (apiRes && apiRes?.projects) {
-    windows.value = createProjectWindows(apiRes.projects, baseWindowSize)
+    PROJECTS.value = apiRes.projects;
+    windows.value = createProjectWindows(PROJECTS.value, baseWindowSize);
+    projectMediaWindows.value = createAllProjectsMediaWindows(
+      PROJECTS.value,
+      windows.value,
+      baseWindowSize
+    );
+
+    // allProjectMediaWindows.value = Object.values(selectedProjectMediaWindows.value).flat(1)
+    allWindows.value = [
+      ...windows.value,
+      ...projectMediaWindows.value
+        .map(({ mediaWindows }) => mediaWindows)
+        .flat(1),
+    ];
+    setInitalBoundaries();
+    animate();
   }
-  setInitalBoundaries();
-  animate();
 
   gestures = new GestureHandler({
     onStart,

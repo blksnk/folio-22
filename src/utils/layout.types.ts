@@ -1,4 +1,4 @@
-import { Project, ImageFormats } from "@/utils/api.types";
+import { Project, ImageFormats, uid, ProjectTag } from "@/utils/api.types";
 
 export interface Vector2 {
   [key: string]: number | Vector2;
@@ -36,11 +36,21 @@ export interface WindowData {
   transform: Transform;
   targetTransform: Transform;
   title: string;
-  id: number | string;
+  id: string;
   selected: boolean;
   thumbnail: ImageFormats;
   initialPosition: Vector2;
   transformPreZoom: Vector2;
   open: boolean;
   hidden: boolean;
+  tags?: ProjectTag[];
 }
+
+export type ProjectMediaWindows = {
+  projectUid: uid;
+  mediaWindows: WindowData[];
+};
+
+// export interface ProjectMediaWindows {
+//   [k: uid]: WindowData[];
+// }

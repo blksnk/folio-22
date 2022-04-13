@@ -1,5 +1,5 @@
 <template>
-  <div class="window__wrapper" :style="wrapperStyle" ref="windowRef">
+  <div class="window__wrapper" :style="transformStyle" ref="windowRef">
     <div
       :class="{
         window: true,
@@ -8,7 +8,7 @@
         open: props.open,
       }"
       :id="String(props.id)"
-      :style="[transformStyle, windowStyle]"
+      :style="[windowStyle]"
       :data-id="props.id"
       ref="windowRef"
     >
@@ -29,6 +29,9 @@
         />
       </div>
     </div>
+    <div class="window-tags">
+
+    </div>
   </div>
 </template>
 
@@ -41,7 +44,8 @@ import {
   defineEmits,
   onMounted,
 } from "vue";
-import { generateWindowSize, Vector2 } from "@/utils/layout";
+import { generateWindowSize } from "@/utils/layout";
+import { Vector2 } from '@/utils/layout.types'
 import { isBetween } from "@/utils/math";
 import { ImageFormats } from "@/utils/api.types";
 import {
@@ -50,7 +54,7 @@ import {
 } from "@/utils/layout";
 import WindowButton from "./WindowButton.vue";
 import Image from "./ui/Image.vue";
-import { ScreenDims } from "@/views/IndexView.vue";
+import { ScreenDims } from "@/utils/layout.types";
 
 export interface Transform {
   x: number;
@@ -64,7 +68,7 @@ export interface WindowProps {
   id: number | string;
   selected?: boolean;
   thumbnail: ImageFormats;
-  velocity: Vector2;
+  velocity?: Vector2;
   zoomFactor: number;
   open: boolean;
   draggable?: boolean;
@@ -124,6 +128,7 @@ const transformStyle = computed(() => {
     ...props.transform,
     scale: props.hidden ? props.transform.scale - 0.5 : props.transform.scale,
   };
+  // console.log(transform)
 
   if (isVisible(transform)) {
     const style = createWindowTransformStyle(transform, center);
@@ -134,7 +139,7 @@ const transformStyle = computed(() => {
 });
 
 // watchEffect(() => {
-//   wrapperStyle.value = createWindowWrapperRotation(props.velocity);
+//   wrapperStyle.value = createWindowWrapperRotation(props.?);
 // });
 
 const windowStyle = computed(() => {
@@ -153,8 +158,6 @@ watchEffect(() => {
   }
   size.x = s.x;
   size.y = s.y;
-  translateOffset.value.x = s.x / 2;
-  translateOffset.value.y = s.y / 2;
 });
 
 function resetDraggableOffset() {
@@ -226,6 +229,8 @@ onMounted(() => {
 
 .window__wrapper
   position: absolute
+  height: auto
+  width: auto
   // transition: transform .8s ease-out 0s
 
 .window
@@ -310,20 +315,17 @@ onMounted(() => {
     transition: filter .2s ease-out 0s, background-position .3s ease-in-out 0s, opacity .6s linear 0s, transform .6s ease-in 0s
     opacity: 0
     pointer-events: none
+    user-select: none
 
   &.open .window-top
     transform: translateY(-46px)
     transition: background-color .6s linear, transform 0.3s ease-in 0s
 
-// .window::before {
-//   content: "";
-//   position: absolute;
-//   top: 0;
-//   left: 0;
-//   height: 100%;
-//   width: 100%;
-//   border-radius: 50%;
-//   background-color: red;
-//   filter: blur(50px);
-// }
+.window-tags
+  position: relative
+  top: 100%
+  left: 0px
+  background-color: red
+  height: 100px
+  width: 100px
 </style>

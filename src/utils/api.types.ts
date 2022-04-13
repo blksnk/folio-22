@@ -195,3 +195,7 @@ export type Project_Raw = {
     };
   };
 };
+
+// MAYBES
+
+export type MaybeProject = Project | undefined;

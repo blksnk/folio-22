@@ -1,35 +1,14 @@
 import { clamp } from "@/utils/math";
-import { Project } from "@/utils/api.types";
-import { WindowData } from "@/utils/layout.types";
-
-export interface Vector2 {
-  [key: string]: number | Vector2;
-  x: number;
-  y: number;
-}
-
-export interface Vector3 extends Vector2 {
-  z: number;
-}
-
-export interface Transform {
-  x: number;
-  y: number;
-  scale: number;
-}
-
-export type Boundary = {
-  [k: string]: number;
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-};
-
-export interface WindowPosition extends Boundary {
-  width: number;
-  height: number;
-}
+import { Project, ProjectMedia } from "@/utils/api.types";
+import {
+  Vector2,
+  Transform,
+  Boundary,
+  WindowPosition,
+  WindowData,
+  ProjectMediaWindows,
+} from "@/utils/layout.types";
+import { root } from "postcss";
 
 export const WINDOW_WIDTH = window.innerWidth < 600 ? 250 : 500;
 const ROTATION_AMOUNT = "35deg";
@@ -174,11 +153,14 @@ const generateWindowPosition = (
     bottom: 0,
     left: 0,
     right: 0,
-    height: 0,
-    width: 0,
+    height: 1,
+    width: 1,
   };
+
   const isTopWindow = index % 2 === 0;
-  const top = isTopWindow ? 0 : prevWindowPos.height + margin;
+  const ratio = prevWindowPos.width / prevWindowPos.height;
+
+  const top = isTopWindow ? 0 : prevWindowPos.bottom + margin / ratio;
   const bottom = top + currentWindowSize.y;
   const left = isTopWindow
     ? prevWindowPos.right + margin
@@ -197,26 +179,34 @@ const generateWindowPosition = (
 };
 
 export const generateWindowPositions = (
-  projects: Project[],
+  ratios: number[],
   baseWindowSize: Vector2
 ): WindowPosition[] => {
   const windowSizes: Vector2[] = [];
   const windowPositions: WindowPosition[] = [];
-  projects.forEach((project, index) => {
-    const currentWindowSize = generateWindowSize(
-      project.thumbnail.original.aspectRatio,
-      baseWindowSize
-    );
+  ratios.forEach((ratio, index) => {
+    const currentWindowSize = generateWindowSize(ratio, baseWindowSize);
     const position = generateWindowPosition(
       currentWindowSize,
       windowPositions,
       index,
-      baseWindowSize.x / 8
+      baseWindowSize.x / 6
     );
-    // TODO: increment first position by screenSize.center
     windowSizes.push(currentWindowSize);
     windowPositions.push(position);
   });
+
+  // apply random offset every column
+  for (let i = 2; i < windowPositions.length; i += 2) {
+    let randomOffset = Math.floor(Math.random() * 300);
+    if (Math.round(Math.random())) {
+      randomOffset *= -1;
+    }
+    windowPositions[i].top += randomOffset;
+    if (windowPositions[i + 1]) {
+      windowPositions[i + 1].top += randomOffset;
+    }
+  }
 
   return windowPositions;
 };
@@ -226,8 +216,10 @@ export const createProjectWindows = (
   baseWindowSize: Vector2
 ): WindowData[] => {
   // const windows = [];
-  const positions = generateWindowPositions(projects, baseWindowSize);
-  console.log(positions);
+  const positions = generateWindowPositions(
+    projects.map(({ thumbnail }) => thumbnail.original.aspectRatio),
+    baseWindowSize
+  );
   const windows = projects.map(({ title, uid, thumbnail }, index) => {
     const pos = positions[index];
 
@@ -254,3 +246,85 @@ export const createProjectWindows = (
   });
   return windows;
 };
+
+const generateMediaWindowPosition = (
+  currentMediaSize: Vector2,
+  offsetX: number,
+  centerY: number,
+  margin: number
+): Boundary => {
+  const left = offsetX + margin;
+  const top = centerY; //- currentMediaSize.y;
+  return {
+    left,
+    right: left + currentMediaSize.x,
+    top,
+    bottom: top + currentMediaSize.y,
+  };
+};
+
+export const createMediaWindows = (
+  rootWindow: WindowData,
+  projectMedias: ProjectMedia[],
+  baseWindowSize: Vector2
+): WindowData[] => {
+  // align media windows hozirontally with project window
+  if (projectMedias.length < 1) {
+    return [];
+  }
+  const rootWindowSize = generateWindowSize(
+    rootWindow.thumbnail.original.aspectRatio,
+    baseWindowSize
+  );
+  const margin = baseWindowSize.x / 6;
+  let offsetX =
+    rootWindow.initialPosition.x +
+    rootWindowSize.x * projectMedias[0].media.original.aspectRatio +
+    margin;
+  const centerY = rootWindow.initialPosition.y; //  + rootWindowSize.y / 2;
+  const mediaWindows = projectMedias.map((media) => {
+    console.warn("offsetX: ", offsetX);
+    const size = generateWindowSize(
+      media.media.original.aspectRatio,
+      baseWindowSize
+    );
+    const position = generateMediaWindowPosition(
+      size,
+      offsetX,
+      centerY,
+      margin
+    );
+    // update offsetX with latest media window position
+    offsetX = position.right;
+    // generate WindowData
+    const pos = { x: position.left, y: position.top };
+    const t = { ...pos, scale: 1 };
+    return {
+      transform: t,
+      targetTransform: t,
+      transformPreZoom: pos,
+      title: media.title,
+      id: media.uid,
+      selected: false,
+      thumbnail: media.media,
+      initialPosition: pos,
+      open: false,
+      hidden: true,
+    };
+  });
+  return mediaWindows;
+};
+
+export const createAllProjectsMediaWindows = (
+  projects: Project[],
+  windows: WindowData[],
+  baseWindowSize: Vector2
+): ProjectMediaWindows[] =>
+  projects.map(({ media, uid }, index) => {
+    return {
+      projectUid: uid,
+      mediaWindows: createMediaWindows(windows[index], media, baseWindowSize),
+    };
+  });
+
+export const isMediaWindow = (windowId: string) => windowId.includes("media");

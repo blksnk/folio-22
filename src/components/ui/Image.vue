@@ -66,7 +66,7 @@ const sizes = computed(() =>
   user-select: none
   pointer-events: none
   transform: translateY(20.5px) scale(1)
-  transition: transform .6s ease-in-out .6s
+  transition: transform .6s ease-in-out 0s
 
   &.fill
     transform: translateY(0px) scale(1.1)

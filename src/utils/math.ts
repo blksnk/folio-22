@@ -12,7 +12,7 @@ export function largestAbsolute(n1: number, n2: number): number {
 
 export function getScaleCoef(offset: Vector2): number {
   const sum = offset.x + offset.y;
-  const scaleCoef = clamp((1 - sum / 2 + 0.5) * 1.6, 0.5, 1);
+  const scaleCoef = clamp((1 - sum / 2 + 0.5) * 1.5, 0.5, 1);
   return scaleCoef;
 }
 
