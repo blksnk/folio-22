@@ -13,8 +13,8 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ScreenDims } from "@/views/IndexView.vue";
-import { Vector2 } from "@/utils/layout";
+import { generateWindowSize } from "@/utils/layout";
+import { Vector2, ScreenDims } from "@/utils/layout.types"
 
 interface MinimapItem {
   transform: Vector2;
@@ -46,6 +46,7 @@ const HEIGHT = 150;
 const SCALE_FACTOR = 6;
 const ITEM_SIZE = HEIGHT / SCALE_FACTOR;
 
+
 const WIDTH = computed(() => HEIGHT * props.screenSize.ratio);
 
 const renderRatio = computed<Vector2>(() => ({
@@ -53,15 +54,27 @@ const renderRatio = computed<Vector2>(() => ({
   y: HEIGHT / props.screenSize.y,
 }));
 
+const itemScales = computed(() => props.items.map(({ ratio }) => {
+  const s = generateWindowSize(ratio, { x: 1, y: 1} )
+  return {
+    x: s.x,
+    y: s.y - 46
+  }
+}))
+
+const ITEM_MARGIN = 10
+
 const minimapItemStyles = computed<MinimapItemProps[]>(() =>
   props.items
-    .map(({ transform, ratio, selected, hidden, ...item }) => ({
+    .map(({ transform, ratio, selected, hidden, ...item }, index) => ({
       x:
         (transform.x * renderRatio.value.x) / 2 +
         WIDTH.value / 4 -
         ITEM_SIZE / 2,
       y: (transform.y * renderRatio.value.y) / 2 + HEIGHT / 4 - ITEM_SIZE / 2,
-      scale: { x: 1, y: 1 / ratio },
+      
+      
+      scale: itemScales.value[index],
       selected,
       hidden,
       ...item,

@@ -13,7 +13,7 @@
 
 <script lang="ts" setup>
 import { computed } from "vue";
-import { Vector2 } from "@/utils/layout";
+import { Vector2 } from "@/utils/layout.types";
 
 interface CursorProps {
   mousePos: Vector2;

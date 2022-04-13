@@ -1,5 +1,5 @@
 <template>
-  <div class="window__wrapper" :style="transformStyle" ref="windowRef">
+  <div class="window__wrapper" ref="windowWrapper">
     <div
       :class="{
         window: true,
@@ -8,7 +8,7 @@
         open: props.open,
       }"
       :id="String(props.id)"
-      :style="[windowStyle]"
+      :style="[windowStyle, transformStyle]"
       :data-id="props.id"
       ref="windowRef"
     >
@@ -17,6 +17,7 @@
         :sources="thumbnail"
         :fill="!props.selected"
         :showcase="props.open"
+        :alt="props.title"
       />
       <div class="window-top" ref="windowTop">
         <h2>{{ props.title }}</h2>
@@ -45,7 +46,7 @@ import {
   onMounted,
 } from "vue";
 import { generateWindowSize } from "@/utils/layout";
-import { Vector2 } from '@/utils/layout.types'
+import { Vector2, Transform } from '@/utils/layout.types'
 import { isBetween } from "@/utils/math";
 import { ImageFormats } from "@/utils/api.types";
 import {
@@ -55,12 +56,6 @@ import {
 import WindowButton from "./WindowButton.vue";
 import Image from "./ui/Image.vue";
 import { ScreenDims } from "@/utils/layout.types";
-
-export interface Transform {
-  x: number;
-  y: number;
-  scale: number;
-}
 
 export interface WindowProps {
   transform: Transform;
@@ -99,11 +94,19 @@ const lastMousePos: Vector2 = {
   y: 0,
 };
 
-const size = reactive<Vector2>({ x: props.baseSize.x, y: props.baseSize.y });
+const size = computed<Vector2>(() => {
+  const { aspectRatio } = props.thumbnail.large;
+
+  const s = generateWindowSize(aspectRatio, props.baseSize);
+  if (props.open) {
+    s.y -= 46;
+  }
+  return s
+});
 
 let translateOffset = computed<Vector2>(() => ({
-  x: size.x / 2,
-  y: size.y / 2,
+  x: size.value.x / 2,
+  y: size.value.y / 2,
 }));
 
 const emit = defineEmits(["open", "close"]);
@@ -114,24 +117,20 @@ const onClick = () => {
 
 // check for window visibility
 const isVisible = (t: Transform): boolean =>
-  t.x + size.x > 0 &&
-  t.x - size.x / 2 < props.screenSize.x &&
-  t.y + size.y > 0 &&
-  t.y - size.y / 2 < props.screenSize.y;
+  t.x + size.value.x > 0 &&
+  t.x - size.value.x / 2 < props.screenSize.x &&
+  t.y + size.value.y > 0 &&
+  t.y - size.value.y / 2 < props.screenSize.y;
 
 const transformStyle = computed(() => {
   const center = {
     x: translateOffset.value.x + draggableTransformOffset.x,
     y: translateOffset.value.y + draggableTransformOffset.y + 46,
   };
-  const transform = {
-    ...props.transform,
-    scale: props.hidden ? props.transform.scale - 0.5 : props.transform.scale,
-  };
   // console.log(transform)
 
-  if (isVisible(transform)) {
-    const style = createWindowTransformStyle(transform, center);
+  if (isVisible(props.transform)) {
+    const style = createWindowTransformStyle(props.transform, center);
     prevStyle = style;
     return style;
   }
@@ -144,20 +143,9 @@ const transformStyle = computed(() => {
 
 const windowStyle = computed(() => {
   return `
-    width: ${size.x}px;
-    height: ${size.y}px;
+    width: ${size.value.x}px;
+    height: ${size.value.y}px;
   `;
-});
-
-watchEffect(() => {
-  const { aspectRatio } = props.thumbnail.large;
-
-  const s = generateWindowSize(aspectRatio, props.baseSize);
-  if (props.open) {
-    s.y -= 41;
-  }
-  size.x = s.x;
-  size.y = s.y;
 });
 
 function resetDraggableOffset() {
@@ -231,6 +219,7 @@ onMounted(() => {
   position: absolute
   height: auto
   width: auto
+  transform-origin: center center
   // transition: transform .8s ease-out 0s
 
 .window
@@ -245,6 +234,7 @@ onMounted(() => {
   box-shadow: 0px 4px 24px 6px rgba(0, 0, 0, .25)
   user-select: none
   cursor: pointer
+  transform-origin: center center
   opacity: 1
 
   .window-img
@@ -309,7 +299,7 @@ onMounted(() => {
           transform: scale(1.2)
 
   &.selected, &:hover
-    filter: blur(0px)
+    // filter: blur(0px)
 
   &.hidden
     transition: filter .2s ease-out 0s, background-position .3s ease-in-out 0s, opacity .6s linear 0s, transform .6s ease-in 0s
@@ -317,9 +307,13 @@ onMounted(() => {
     pointer-events: none
     user-select: none
 
-  &.open .window-top
-    transform: translateY(-46px)
-    transition: background-color .6s linear, transform 0.3s ease-in 0s
+  &.open
+    transition: filter .2s ease-out 0s, background-position .3s ease-in-out 0s, opacity .6s linear 0s, height .3s linear 0s
+    
+    
+    .window-top
+      transform: translateY(-46px)
+      transition: background-color .6s linear, transform 0.3s ease-in 0s
 
 .window-tags
   position: relative

@@ -71,7 +71,7 @@ export const generateWindowSize = (
   };
   // show whole image by compensating for tab bar
   size.x = aspectRatio > 1 ? baseSize.x * aspectRatio : baseSize.x;
-  size.y = aspectRatio > 1 ? baseSize.y + 41 : baseSize.y / aspectRatio + 41;
+  size.y = aspectRatio > 1 ? baseSize.y + 46 : baseSize.y / aspectRatio + 46;
   return size;
 };
 
@@ -250,11 +250,15 @@ export const createProjectWindows = (
 const generateMediaWindowPosition = (
   currentMediaSize: Vector2,
   offsetX: number,
-  centerY: number,
+  rootWindowPos: Vector2,
+  rootWindowSize: Vector2,
   margin: number
 ): Boundary => {
   const left = offsetX + margin;
-  const top = centerY; //- currentMediaSize.y;
+  // const top = rootWindowPos.y + (rootWindowSize.y / 2 - currentMediaSize.y / 2);
+  const top = rootWindowPos.y + (rootWindowSize.y / 2 - currentMediaSize.y / 2);
+  //  - currentMediaSize.y / 2 + rootWindowSize.y / 2;
+  // const top = rootWindowPos.y * ((rootWindowSize.y - 46) / currentMediaSize.y);
   return {
     left,
     right: left + currentMediaSize.x,
@@ -277,11 +281,18 @@ export const createMediaWindows = (
     baseWindowSize
   );
   const margin = baseWindowSize.x / 6;
-  let offsetX =
-    rootWindow.initialPosition.x +
-    rootWindowSize.x * projectMedias[0].media.original.aspectRatio +
-    margin;
-  const centerY = rootWindow.initialPosition.y; //  + rootWindowSize.y / 2;
+  let offsetX = rootWindow.initialPosition.x + rootWindowSize.x;
+
+  const firstWindowSize = generateWindowSize(
+    projectMedias[0].media.original.aspectRatio,
+    baseWindowSize
+  );
+  const diffX =
+    offsetX - rootWindowSize.x / 2 - firstWindowSize.x * 0.5 - margin;
+  console.log(diffX);
+  offsetX -= diffX;
+
+  const centerY = rootWindow.initialPosition.y + rootWindowSize.y / 2;
   const mediaWindows = projectMedias.map((media) => {
     console.warn("offsetX: ", offsetX);
     const size = generateWindowSize(
@@ -291,7 +302,8 @@ export const createMediaWindows = (
     const position = generateMediaWindowPosition(
       size,
       offsetX,
-      centerY,
+      rootWindow.initialPosition,
+      rootWindowSize,
       margin
     );
     // update offsetX with latest media window position

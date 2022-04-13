@@ -59,7 +59,7 @@ import { debounce } from "lodash";
 // import { storeToRefs } from "pinia";
 
 import FixedFrame from "@/components/FixedFrame.vue";
-import Window, { Transform } from "@/components/Window.vue";
+import Window from "@/components/Window.vue";
 import Minimap from "@/components/Minimap.vue";
 import MouseCursor from "@/components/MouseCursor.vue";
 import SelectedProjectWindows from "@/components/SelectedProjectWindows.vue";
@@ -81,6 +81,7 @@ import {
   Boundary,
   Vector2,
   ProjectMediaWindows,
+  Transform,
 } from "@/utils/layout.types";
 import { loadApi } from "@/utils/api";
 import { clamp, getScaleCoef, largestAbsolute, isBetween } from "@/utils/math";
@@ -111,7 +112,7 @@ let selectedId = reactive<{ id: string | number }>({ id: 0 });
 let gestures: GestureHandler | undefined;
 let zoomFactor = reactive({ value: 0.15 });
 let preTranslateZoomTarget = isMobile.value ? 0.8 : 0.5;
-let zoomTarget = isMobile.value ? 0.8 : 0.5;
+let zoomTarget = isMobile.value ? 0.8 : 0.6;
 let dragDezooming = false;
 
 let debugLine = reactive<Vector2>({ x: 0, y: 0 });
@@ -174,7 +175,7 @@ function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
   translatePosition.x += vel.x * (2 - zoom);
   translatePosition.y += vel.y * (2 - zoom);
 
-  [...windows].forEach((window, index) => {
+  windows.forEach((window, index) => {
     const { x, y } = window.transform;
 
     const offsetFromCenter: Vector2 = {
@@ -197,7 +198,7 @@ function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
       window.transformPreZoom.x * zoom + screenSize.center.x * zoomInvert;
     window.targetTransform.y =
       window.transformPreZoom.y * zoom + screenSize.center.y * zoomInvert;
-    window.targetTransform.scale = scale * zoom;
+    window.targetTransform.scale = window.hidden ? 0.2 : scale * zoom;
   });
 }
 
@@ -483,7 +484,7 @@ onMounted(async () => {
   if (apiRes && apiRes?.projects) {
     PROJECTS.value = apiRes.projects;
     windows.value = createProjectWindows(PROJECTS.value, baseWindowSize);
-    projectMediaWindows.value = createAllProjectsMediaWindows(
+    const mediaWindows = createAllProjectsMediaWindows(
       PROJECTS.value,
       windows.value,
       baseWindowSize
@@ -492,7 +493,7 @@ onMounted(async () => {
     // allProjectMediaWindows.value = Object.values(selectedProjectMediaWindows.value).flat(1)
     allWindows.value = [
       ...windows.value,
-      ...projectMediaWindows.value
+      ...mediaWindows
         .map(({ mediaWindows }) => mediaWindows)
         .flat(1),
     ];
