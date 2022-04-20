@@ -8,7 +8,6 @@ import {
   WindowData,
   ProjectMediaWindows,
 } from "@/utils/layout.types";
-import { root } from "postcss";
 
 export const WINDOW_WIDTH = window.innerWidth < 600 ? 250 : 500;
 const ROTATION_AMOUNT = "35deg";
@@ -24,12 +23,16 @@ export const getScreenDims = () => ({
 export const createWindowTransformStyle = (
   transform: Transform,
   windowCenter: Vector2
-): string => {
+): Transform => {
   const x = transform.x - windowCenter.x;
   const y = transform.y - windowCenter.y; // offset to center window in frame;
   const scale = transform?.scale || 1;
-  return `transform: translate3d(${x}px, ${y}px, 0px) scale(${scale}, ${scale})`;
+  return { x, y, scale };
+  // return `transform: translate3d(${x}px, ${y}px, 0px) scale(${scale}, ${scale})`;
 };
+
+export const createTransformString = (t: Transform) =>
+  `transform: translate3d(${t.x}px, ${t.y}px, 0px) scale(${t.scale}, ${t.scale})`;
 
 export const createWindowWrapperRotation = (velocity: Vector2) => {
   const rotationX = clamp(velocity.y / ROTATION_DAMPENING, -1, 1);
@@ -198,10 +201,7 @@ export const generateWindowPositions = (
 
   // apply random offset every column
   for (let i = 2; i < windowPositions.length; i += 2) {
-    let randomOffset = Math.floor(Math.random() * 300);
-    if (Math.round(Math.random())) {
-      randomOffset *= -1;
-    }
+    const randomOffset = generateRandomOffset();
     windowPositions[i].top += randomOffset;
     if (windowPositions[i + 1]) {
       windowPositions[i + 1].top += randomOffset;
@@ -209,6 +209,14 @@ export const generateWindowPositions = (
   }
 
   return windowPositions;
+};
+
+const generateRandomOffset = (): number => {
+  let randomOffset = Math.floor(Math.random() * 300);
+  if (Math.round(Math.random())) {
+    randomOffset *= -1;
+  }
+  return randomOffset;
 };
 
 export const createProjectWindows = (
@@ -220,7 +228,7 @@ export const createProjectWindows = (
     projects.map(({ thumbnail }) => thumbnail.original.aspectRatio),
     baseWindowSize
   );
-  const windows = projects.map(({ title, uid, thumbnail }, index) => {
+  const windows = projects.map(({ title, uid, thumbnail, tags }, index) => {
     const pos = positions[index];
 
     const initialPosition = {
@@ -242,6 +250,7 @@ export const createProjectWindows = (
       thumbnail,
       open: false,
       hidden: false,
+      tags,
     };
   });
   return windows;
@@ -256,7 +265,9 @@ const generateMediaWindowPosition = (
 ): Boundary => {
   const left = offsetX + margin;
   // const top = rootWindowPos.y + (rootWindowSize.y / 2 - currentMediaSize.y / 2);
-  const top = rootWindowPos.y + (rootWindowSize.y / 2 - currentMediaSize.y / 2);
+  const alignedToBottom =
+    rootWindowPos.y + (rootWindowSize.y / 2 - currentMediaSize.y / 2);
+  const top = alignedToBottom + (rootWindowPos.y - alignedToBottom); // + generateRandomOffset();
   //  - currentMediaSize.y / 2 + rootWindowSize.y / 2;
   // const top = rootWindowPos.y * ((rootWindowSize.y - 46) / currentMediaSize.y);
   return {
@@ -287,10 +298,10 @@ export const createMediaWindows = (
     projectMedias[0].media.original.aspectRatio,
     baseWindowSize
   );
-  const diffX =
-    offsetX - rootWindowSize.x / 2 - firstWindowSize.x * 0.5 - margin;
+  const diffX = (firstWindowSize.x - rootWindowSize.x) / 2;
   console.log(diffX);
-  offsetX -= diffX;
+  console.error(rootWindow.title);
+  offsetX += diffX;
 
   const centerY = rootWindow.initialPosition.y + rootWindowSize.y / 2;
   const mediaWindows = projectMedias.map((media) => {

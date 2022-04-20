@@ -6,7 +6,8 @@
         active: props.showText,
       }"
     >
-      <span id="cursor__text">{{ displayText }}</span>
+      <ion-icon v-if="icon" :name="icon" id="cursor__icon"></ion-icon>
+      <span v-else id="cursor__text">{{ displayText }}</span>
     </div>
   </div>
 </template>
@@ -19,6 +20,7 @@ interface CursorProps {
   mousePos: Vector2;
   text?: string;
   showText: boolean;
+  icon?: string;
 }
 
 const props = defineProps<CursorProps>();
@@ -63,11 +65,17 @@ const displayText = computed(() => props?.text || "View");
     transition: opacity .2s linear
     @include f-nav-link
 
+  #cursor__icon
+    color: $c-grey-6
+    opacity: 0
+    font-size: 40px
+    --ionicon-stroke-weight: 1px
+
   &.active
     @include blur-bg
     transition: transform .2s ease-out 0s, background-color .3s linear 0s
     transform: scale(1)
 
-    #cursor__text
+    #cursor__text, #cursor__icon
       opacity: 1
 </style>

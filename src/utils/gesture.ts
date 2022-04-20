@@ -63,10 +63,20 @@ class GestureHandler {
     this.target.addEventListener("mouseup", this._onMouseUp.bind(this));
     this.target.addEventListener("mousemove", this._onMouseMove.bind(this));
 
-    this.target.addEventListener("touchstart", this._onTouchStart.bind(this));
-    this.target.addEventListener("touchend", this._onTouchEnd.bind(this));
-    this.target.addEventListener("touchcancel", this._onTouchCancel.bind(this));
-    this.target.addEventListener("touchleave", this._onTouchEnd.bind(this));
+    this.target.addEventListener("touchstart", this._onTouchStart.bind(this), {
+      passive: false,
+    });
+    this.target.addEventListener("touchend", this._onTouchEnd.bind(this), {
+      passive: false,
+    });
+    this.target.addEventListener(
+      "touchcancel",
+      this._onTouchCancel.bind(this),
+      { passive: false }
+    );
+    this.target.addEventListener("touchleave", this._onTouchEnd.bind(this), {
+      passive: false,
+    });
     this.target.addEventListener("touchmove", this._onTouchMove.bind(this), {
       passive: false,
     });
@@ -160,6 +170,7 @@ class GestureHandler {
   }
 
   _onTouchStart(e: Event) {
+    this.prevent(e);
     const touchEvent = e as TouchEvent;
     this.oldTouches = [];
     this.touches = [...touchEvent.changedTouches];
@@ -169,6 +180,7 @@ class GestureHandler {
   }
 
   _onTouchEnd(e: Event) {
+    this.prevent(e);
     this.removeTouches(e);
     this.touchPositions = [];
     this.onEnd();

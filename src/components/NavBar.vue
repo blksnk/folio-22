@@ -26,12 +26,28 @@ nav
 
 .link
   color: $c-grey-6
+  position: relative
   @include f-nav-link
+
+  &::after
+    position: absolute
+    content: ""
+    bottom: -2px
+    left: 0
+    background-color: $c-primary
+    height: 1px
+    width: 100%
+    transform: scaleX(0)
+    transition: transform .3s ease-in
+    transform-origin: center right
 
   &.router-link-active
     @include f-nav-link__active
     color: $c-primary
 
-  &:not(.router-link-active):hover
-    text-decoration: underline
+  &:not(.router-link-active):hover::after
+    transform: scaleX(1)
+    transform-origin: center left
+    // text-decoration: underline
+    // text-decoration-color: $c-primary
 </style>

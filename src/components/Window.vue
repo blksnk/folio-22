@@ -1,5 +1,9 @@
 <template>
-  <div class="window__wrapper" ref="windowWrapper">
+  <div
+    class="window__wrapper"
+    :style="windowTransformStyleString"
+    ref="windowWrapper"
+  >
     <div
       :class="{
         window: true,
@@ -8,7 +12,7 @@
         open: props.open,
       }"
       :id="String(props.id)"
-      :style="[windowStyle, transformStyle]"
+      :style="[windowStyle]"
       :data-id="props.id"
       ref="windowRef"
     >
@@ -30,8 +34,10 @@
         />
       </div>
     </div>
-    <div class="window-tags">
-
+    <div v-if="tags" id="window__tags" :class="{ hidden }">
+      <div v-for="tag in tags" :key="tag.uid" class="window__tag">
+        <span>{{ tag.title }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -44,13 +50,15 @@ import {
   reactive,
   defineEmits,
   onMounted,
+  watch,
 } from "vue";
 import { generateWindowSize } from "@/utils/layout";
-import { Vector2, Transform } from '@/utils/layout.types'
+import { Vector2, Transform } from "@/utils/layout.types";
 import { isBetween } from "@/utils/math";
-import { ImageFormats } from "@/utils/api.types";
+import { ImageFormats, ProjectTag } from "@/utils/api.types";
 import {
   createWindowTransformStyle,
+  createTransformString,
   createWindowWrapperRotation,
 } from "@/utils/layout";
 import WindowButton from "./WindowButton.vue";
@@ -70,6 +78,7 @@ export interface WindowProps {
   hidden: boolean;
   baseSize: Vector2;
   screenSize: ScreenDims;
+  tags?: ProjectTag[];
 }
 const props = defineProps<WindowProps>();
 
@@ -101,7 +110,7 @@ const size = computed<Vector2>(() => {
   if (props.open) {
     s.y -= 46;
   }
-  return s
+  return s;
 });
 
 let translateOffset = computed<Vector2>(() => ({
@@ -117,36 +126,61 @@ const onClick = () => {
 
 // check for window visibility
 const isVisible = (t: Transform): boolean =>
-  t.x + size.value.x > 0 &&
-  t.x - size.value.x / 2 < props.screenSize.x &&
-  t.y + size.value.y > 0 &&
-  t.y - size.value.y / 2 < props.screenSize.y;
+  t.x + size.value.x > -size.value.x / 2 &&
+  t.x - size.value.x / 2 < props.screenSize.x * 2 &&
+  t.y + size.value.y > -size.value.y / 2 &&
+  t.y - size.value.y / 2 < props.screenSize.y * 2;
 
-const transformStyle = computed(() => {
-  const center = {
-    x: translateOffset.value.x + draggableTransformOffset.x,
-    y: translateOffset.value.y + draggableTransformOffset.y + 46,
-  };
-  // console.log(transform)
+// const transformStyle = computed(() => {
+//   const center = {
+//     x: translateOffset.value.x + draggableTransformOffset.x,
+//     y: translateOffset.value.y + draggableTransformOffset.y + 46,
+//   };
+//   // console.log(transform)
 
-  if (isVisible(props.transform)) {
-    const style = createWindowTransformStyle(props.transform, center);
-    prevStyle = style;
-    return style;
+//   if (isVisible(props.transform) && !props.hidden) {
+//     const style = createWindowTransformStyle(props.transform, center);
+//     prevStyle = style;
+//     return style;
+//   }
+//   return prevStyle;
+// });
+
+const windowTransform = ref({ x: 0, scale: 0, y: 0 });
+
+watchEffect(() => {
+  if (isVisible(props.transform) && !props.hidden) {
+    const center = {
+      x: translateOffset.value.x + draggableTransformOffset.x,
+      y: translateOffset.value.y + draggableTransformOffset.y + 46,
+    };
+    windowTransform.value = createWindowTransformStyle(props.transform, center);
   }
-  return prevStyle;
 });
+
+const windowTransformStyleString = computed(() =>
+  createTransformString(windowTransform.value)
+);
 
 // watchEffect(() => {
 //   wrapperStyle.value = createWindowWrapperRotation(props.?);
 // });
 
-const windowStyle = computed(() => {
-  return `
+const windowStyle = computed(
+  () => `
     width: ${size.value.x}px;
     height: ${size.value.y}px;
-  `;
-});
+  `
+);
+
+const tagWrapperStyle = computed(() =>
+  createTransformString({
+    ...props.transform,
+    // scale: 1,
+    x: props.transform.x * props.transform.scale,
+    y: props.transform.y + (size.value.y / 2) * props.transform.scale,
+  })
+);
 
 function resetDraggableOffset() {
   const move = () => {
@@ -188,7 +222,6 @@ const onMove = (e: MouseEvent) => {
       x: lastMousePos.x - e.clientX,
       y: lastMousePos.y - e.clientY,
     };
-    console.log(delta);
     draggableTransformOffset.x += delta.x;
     draggableTransformOffset.y += delta.y;
   }
@@ -217,13 +250,15 @@ onMounted(() => {
 
 .window__wrapper
   position: absolute
-  height: auto
-  width: auto
   transform-origin: center center
   // transition: transform .8s ease-out 0s
+  min-height: 300px
+  width: 400px
+  width: min-content
+  height: min-content
 
 .window
-  position: absolute
+  position: relative
   min-height: 300px
   width: 400px
   user-select: none
@@ -309,17 +344,30 @@ onMounted(() => {
 
   &.open
     transition: filter .2s ease-out 0s, background-position .3s ease-in-out 0s, opacity .6s linear 0s, height .3s linear 0s
-    
-    
+
     .window-top
       transform: translateY(-46px)
       transition: background-color .6s linear, transform 0.3s ease-in 0s
 
-.window-tags
-  position: relative
-  top: 100%
-  left: 0px
-  background-color: red
-  height: 100px
-  width: 100px
+#window__tags
+  position: absolute
+  left: 0
+  top: calc(100% + 12px)
+  display: flex
+  justify-content: flex-start
+  align-items: center
+  transform-origin: top left
+  gap: 12px
+  opacity: 1
+  transition: opacity .2s linear 0s
+
+  .window__tag
+    @include blur-bg
+    padding: 6px 12px
+    color: $c-grey-6
+    border-radius: 24px
+    background-color: rgba(12, 12, 12, .8)
+
+  &.hidden
+    opacity: 0
 </style>

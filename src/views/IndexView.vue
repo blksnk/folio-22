@@ -19,6 +19,7 @@
       :hidden="window.hidden"
       :baseSize="baseWindowSize"
       :screenSize="screenSize"
+      :tags="window?.tags"
       @mouseup="() => selectWindow(window.id, false)"
       @mouseover="onMouseOver(window.id)"
       @mouseleave="onMouseLeave()"
@@ -32,7 +33,7 @@
     />
     <!-- <TextWindow content="test content" title="text title" :zoomFactor="zoomFactor.value" id="0" /> -->
   </FixedFrame>
-  <MouseCursor v-if="!isMobile" :mousePos="mousePos" :showText="showCursor" />
+  <MouseCursor v-if="!isMobile" :mousePos="mousePos" :showText="showCursor" :text="cursorText" :icon="cursorIcon"/>
   <!-- <Debug :lines="debugLine" title="Debug" /> -->
 </template>
 
@@ -142,6 +143,9 @@ const selectedWindow = computed<WindowData | undefined>(() =>
   allWindows.value.find((el) => el.id === selectedId.id)
 );
 
+const cursorText = ref('Select');
+const cursorIcon = ref<string | undefined>('eye-outline');
+
 
 // takes zoom into account
 const effectiveBoundaries = computed(() => {
@@ -198,7 +202,8 @@ function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
       window.transformPreZoom.x * zoom + screenSize.center.x * zoomInvert;
     window.targetTransform.y =
       window.transformPreZoom.y * zoom + screenSize.center.y * zoomInvert;
-    window.targetTransform.scale = window.hidden ? 0.2 : scale * zoom;
+    // window.targetTransform.scale = window.hidden ? 0.2 : scale * zoom;
+    window.targetTransform.scale = scale * zoom;
   });
 }
 
@@ -369,13 +374,13 @@ const selectWindow = (
     event.stopPropagation();
   }
 
-  if (window && selectedId.id !== targetId) {
+  if (window && selectedId.id !== targetId && !window.hidden) {
     selectedId.id = targetId;
     translating.value = true;
     showCursor.value = forceShowCursor; // default to hiding cursor on click
     setWindowSelection(targetId);
-    zoomTarget = 0.8;
-    preTranslateZoomTarget = 0.8;
+    zoomTarget = 1;
+    preTranslateZoomTarget = 1;
   }
 };
 
@@ -391,6 +396,7 @@ function translateToTargetPos() {
       Math.max(Math.abs(dstToTarget.x), Math.abs(dstToTarget.y)) > 0.1;
 
     if (needsTranslate) {
+      console.log(dstToTarget.x, dstToTarget.y)
       velocity.x += dstToTarget.x * 0.005;
       velocity.y += (dstToTarget.y * 0.005) / screenSize.ratio;
     } else if (translating.value) {
@@ -421,8 +427,14 @@ function translateCursor() {
 }
 
 function onMouseOver(windowId: string) {
-  if (selectedId.id !== windowId && !isMediaWindow(windowId)) {
+  if (selectedId.id !== windowId && !getWindowById(windowId)?.hidden) {
     showCursor.value = true;
+    cursorIcon.value = 'eye-outline'
+
+    if (isMediaWindow(windowId)) {
+      cursorText.value = 'View'
+      cursorIcon.value = undefined
+    }
   }
 }
 
@@ -508,6 +520,7 @@ onMounted(async () => {
     onTouch,
     onWheel,
     onPinch,
+    preventDefault: true,
   });
 
   window.addEventListener("resize", onResize);
