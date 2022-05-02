@@ -4,9 +4,11 @@
     @close="() => onClose(openWindow?.id)"
     :displayTitle="isWindowOpen"
     :title="openWindow?.title"
+    id="page__index"
+    ref="frameRef"
   >
     <Window
-      v-for="window in allWindows"
+      v-for="window in apiData.allWindows"
       :key="window.id"
       :title="window.title"
       :transform="window.transform"
@@ -23,6 +25,8 @@
       @mouseup="() => selectWindow(window.id, false)"
       @mouseover="onMouseOver(window.id)"
       @mouseleave="onMouseLeave()"
+      @buttonOver="onMouseLeave()"
+      @buttonLeave="onMouseOver(window.id)"
       @open="onOpen(window.id)"
     />
     <Minimap
@@ -31,10 +35,7 @@
       :onSelect="selectWindow"
       :zoomFactor="zoomFactor"
     />
-    <!-- <TextWindow content="test content" title="text title" :zoomFactor="zoomFactor.value" id="0" /> -->
   </FixedFrame>
-  <MouseCursor v-if="!isMobile" :mousePos="mousePos" :showText="showCursor" :text="cursorText" :icon="cursorIcon"/>
-  <!-- <Debug :lines="debugLine" title="Debug" /> -->
 </template>
 
 <script lang="ts">
@@ -52,57 +53,56 @@ import {
   onBeforeUnmount,
   onMounted,
   computed,
+  defineProps,
   ref,
   watch,
-  watchEffect,
+  defineEmits,
 } from "vue";
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 import { debounce } from "lodash";
-// import { storeToRefs } from "pinia";
 
 import FixedFrame from "@/components/FixedFrame.vue";
 import Window from "@/components/Window.vue";
 import Minimap from "@/components/Minimap.vue";
-import MouseCursor from "@/components/MouseCursor.vue";
-import SelectedProjectWindows from "@/components/SelectedProjectWindows.vue";
-// import Debug from "@/components/Debug.vue";
 
-// import { useApiData } from "@/stores/apiData";
 import GestureHandler from "@/utils/gesture";
 import {
   createBoundaries,
   keepInBoundaries,
-  createProjectWindows,
-  createMediaWindows,
-  createAllProjectsMediaWindows,
+  translateFrame,
   isMediaWindow,
+  generateWindowSize,
+  computeZoomTarget,
 } from "@/utils/layout";
 import {
   WindowData,
   ScreenDims,
   Boundary,
   Vector2,
-  ProjectMediaWindows,
-  Transform,
 } from "@/utils/layout.types";
-import { loadApi } from "@/utils/api";
 import { clamp, getScaleCoef, largestAbsolute, isBetween } from "@/utils/math";
-import { Project, uid } from "@/utils/api.types";
+import { PageProps } from "@/utils/gestures.types";
+import { useApiData } from "@/stores/apiData";
+
+interface IndexPageProps extends PageProps {}
+
+const props = defineProps<IndexPageProps>();
+
+const emit = defineEmits([
+  "update:showCursor",
+  "update:cursorText",
+  "update:cursorIcon",
+]);
 
 let screenSize = reactive<ScreenDims>(getScreenDims());
 
-const isMobile = ref<boolean>(screenSize.x < 600);
-
 const baseWindowSize = reactive<Vector2>({
-  x: isMobile.value ? 250 : 500,
-  y: isMobile.value ? 250 : 500,
+  x: props.isMobile ? 250 : 500,
+  y: props.isMobile ? 250 : 500,
 });
 
 let mouseDown = false;
 let lastMousePos: Vector2 = { x: 0, y: 0 };
-let mousePos = reactive<Vector2>({ x: 0, y: 0 });
-let targetMousePos = reactive<Vector2>({ x: 0, y: 0 });
-let showCursor = ref(false);
-
 let velocity = reactive<Vector2>({ x: 0, y: 0 });
 
 let minMoveFactor = 0.55;
@@ -112,40 +112,32 @@ let translating = reactive({ value: false });
 let selectedId = reactive<{ id: string | number }>({ id: 0 });
 let gestures: GestureHandler | undefined;
 let zoomFactor = reactive({ value: 0.15 });
-let preTranslateZoomTarget = isMobile.value ? 0.8 : 0.5;
-let zoomTarget = isMobile.value ? 0.8 : 0.6;
+let preTranslateZoomTarget = props.isMobile ? 0.8 : 0.5;
+let zoomTarget = props.isMobile ? 0.8 : 0.6;
 let dragDezooming = false;
 
 let debugLine = reactive<Vector2>({ x: 0, y: 0 });
-let windows = ref<WindowData[]>([]);
-let PROJECTS = ref<Project[]>([]);
 const initialBoundaries = reactive<Boundary>({
   top: -10000,
   bottom: 10000,
   left: -10000,
   right: 10000,
 });
-const projectMediaWindows = ref<ProjectMediaWindows[]>([]);
-// const selectedProjectMediaWindows = computed<WindowData[]>(
-//   () => projectMediaWindows.value[selectedWindow.value?.id || "NO_OPEN"] || []
-// );
 
 const isWindowOpen = computed<boolean>(() =>
-  windows.value.some((el: WindowData) => el.open)
+  apiData.projectWindows.some((el: WindowData) => el.open)
 );
 
 const openWindow = computed<WindowData | undefined>(() =>
-  windows.value.find((el: WindowData) => el.open)
+  apiData.projectWindows.find((el: WindowData) => el.open)
 );
 const allWindows = ref<WindowData[]>([]);
 
 const selectedWindow = computed<WindowData | undefined>(() =>
-  allWindows.value.find((el) => el.id === selectedId.id)
+  apiData.allWindows.find((el) => el.id === selectedId.id)
 );
 
-const cursorText = ref('Select');
-const cursorIcon = ref<string | undefined>('eye-outline');
-
+const frameRef = ref<HTMLElement | null>(null);
 
 // takes zoom into account
 const effectiveBoundaries = computed(() => {
@@ -164,6 +156,8 @@ const effectiveBoundaries = computed(() => {
 });
 
 const translatePosition = reactive<Vector2>({ x: 0, y: 0 });
+
+const apiData = useApiData()
 
 function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   return Math.max(
@@ -210,6 +204,8 @@ function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
 function onStart({ x, y }: Vector2): void {
   // wait for a click on window. if no click, toggle zoom animation on move
   // if (!isWindowOpen.value) {
+
+  console.log('aaaaaa')
   if (!translating.value && !isWindowOpen.value && !dragDezooming) {
     setTimeout(() => {
       if (!dragDezooming && mouseDown) {
@@ -261,28 +257,26 @@ function onEnd(): void {
 //   }
 // }
 
-function onMove({ x, y }: Vector2): void {
-  targetMousePos.x = x;
-  targetMousePos.y = y;
-  if (mouseDown) {
-    zoomTarget = zoomFactor.value;
+function onMove(_: Vector2, { x, y }: Vector2, fromTrackpad?: boolean): void {
+  if (mouseDown || fromTrackpad) {
+    // zoomTarget = zoomFactor.value;
     translating.value = false;
-    const deltaX: number = x - lastMousePos.x;
-    const deltaY: number = y - lastMousePos.y;
+    // const deltaX: number = x - lastMousePos.x;
+    // const deltaY: number = y - lastMousePos.y;
 
-    velocity.x = deltaX * (2 - zoomFactor.value);
-    if(!isWindowOpen.value) {
-      velocity.y = deltaY * (2 - zoomFactor.value);
+    velocity.x = x * (2 - zoomFactor.value);
+    if (!isWindowOpen.value) {
+      velocity.y = y * (2 - zoomFactor.value);
     }
   }
-  lastMousePos.x = x;
-  lastMousePos.y = y;
+  // lastMousePos.x = x;
+  // lastMousePos.y = y;
 }
 
 function onTouch(touchPositions: Vector2[]): void {
-  isMobile.value = true;
+  // isMobile.value = true;
   if (touchPositions.length === 1) {
-    onMove(touchPositions[0]);
+    onMove({ x: 0, y: 0 }, touchPositions[0]);
   }
 }
 
@@ -305,17 +299,17 @@ function decreaseVelocity(dragFactor = 0.0) {
 
 function setWindowSelection(selectId: number | string) {
   selectedId.id = selectId;
-  windows.value.forEach((window) => {
+  apiData.allWindows.forEach((window) => {
     window.selected = window.id === selectId;
   });
 }
 
 const showSelectedProjectMediaWindows = (openWindowId: string) => {
   const selectedProjectMediaUids =
-    PROJECTS.value
+    apiData.projects
       .find((p) => p.uid === openWindowId)
       ?.media.map(({ uid }) => uid) || [];
-  const mediaWindows = allWindows.value.filter(({ id }) =>
+  const mediaWindows = apiData.allWindows.filter(({ id }) =>
     selectedProjectMediaUids.includes(id)
   );
   mediaWindows.forEach((window) => {
@@ -324,49 +318,46 @@ const showSelectedProjectMediaWindows = (openWindowId: string) => {
 };
 
 const hideAllProjectMediaWindows = () => {
-  allWindows.value
+  apiData.allWindows
     .filter(({ id }) => id.includes("media"))
     .forEach((window) => {
       window.hidden = true;
+      window.selected = false;
     });
 };
 
 function onOpen(windowId: string) {
-  setWindowSelection(windowId);
-  console.log("open", windowId);
-  zoomTarget = 0.9;
-  translating.value = true;
-
-  windows.value.forEach((window) => {
+  apiData.projectWindows.forEach((window) => {
     const isOpen = window.id === windowId;
-    window.open = window.id === windowId;
+    window.open = isOpen;
     // hide other windows
     if (!isOpen) {
       window.hidden = true;
-      // hideWindowIfNeeded(window);
     }
   });
+  selectWindow(windowId, false, undefined, 0.75);
 
   showSelectedProjectMediaWindows(windowId);
 }
 
 function onClose(windowId: string) {
-  windows.value.forEach((window: WindowData) => {
+  hideAllProjectMediaWindows();
+  selectWindow(windowId, false, undefined, 0.5);
+  apiData.projectWindows.forEach((window: WindowData) => {
     window.open = false;
     window.hidden = false;
   });
-  hideAllProjectMediaWindows();
-  selectWindow(windowId, false);
 }
 
 function getWindowById(windowId: number | string) {
-  return allWindows.value.find(({ id }) => id === windowId);
+  return apiData.allWindows.find(({ id }) => id === windowId);
 }
 
 const selectWindow = (
   targetId: number | string,
   forceShowCursor = false,
-  event?: MouseEvent
+  event?: MouseEvent,
+  zt?: number
 ) => {
   const window = getWindowById(targetId);
   if (event) {
@@ -374,13 +365,27 @@ const selectWindow = (
     event.stopPropagation();
   }
 
-  if (window && selectedId.id !== targetId && !window.hidden) {
+  if (
+    window &&
+    (selectedId.id !== targetId || openWindow.value?.id === targetId) &&
+    !window.hidden
+  ) {
     selectedId.id = targetId;
     translating.value = true;
-    showCursor.value = forceShowCursor; // default to hiding cursor on click
+    // default to hiding cursor on click
+    emit("update:showCursor", forceShowCursor);
+    const zoom =
+      zt ||
+      computeZoomTarget(
+        generateWindowSize(
+          window.thumbnail.original.aspectRatio,
+          baseWindowSize
+        )
+      );
+    console.log("zoom", zoom);
+    zoomTarget = zoom;
+    preTranslateZoomTarget = zoom;
     setWindowSelection(targetId);
-    zoomTarget = 1;
-    preTranslateZoomTarget = 1;
   }
 };
 
@@ -396,7 +401,6 @@ function translateToTargetPos() {
       Math.max(Math.abs(dstToTarget.x), Math.abs(dstToTarget.y)) > 0.1;
 
     if (needsTranslate) {
-      console.log(dstToTarget.x, dstToTarget.y)
       velocity.x += dstToTarget.x * 0.005;
       velocity.y += (dstToTarget.y * 0.005) / screenSize.ratio;
     } else if (translating.value) {
@@ -421,42 +425,36 @@ function applyZoom() {
   zoomFactor.value += (zoomTarget - zoomFactor.value) * 0.05;
 }
 
-function translateCursor() {
-  mousePos.x += (targetMousePos.x - mousePos.x) * 0.15;
-  mousePos.y += (targetMousePos.y - mousePos.y) * 0.15;
-}
-
 function onMouseOver(windowId: string) {
   if (selectedId.id !== windowId && !getWindowById(windowId)?.hidden) {
-    showCursor.value = true;
-    cursorIcon.value = 'eye-outline'
+    emit("update:showCursor", true);
+    emit("update:cursorIcon", "eye-outline");
 
     if (isMediaWindow(windowId)) {
-      cursorText.value = 'View'
-      cursorIcon.value = undefined
+      emit("update:cursorText", "View");
+      emit("update:cursorIcon", undefined);
     }
   }
 }
 
 function onMouseLeave() {
-  if (showCursor.value) {
-    showCursor.value = false;
-  }
+  emit("update:showCursor", false);
 }
+
 
 function animate(): void {
   frameId = requestAnimationFrame(animate);
   applyZoom();
-  tranformWindowsOnDrag(velocity, allWindows.value);
+  tranformWindowsOnDrag(velocity, apiData.allWindows);
   translateToTargetPos();
-  translateCursor();
+  // translateCursor();
   // keepInBounds();
   // keepInBoundaries(translatePosition, effectiveBoundaries.value);
   decreaseVelocity(translating ? dragFactor : 0);
 }
 
 const minimapItems = computed(() =>
-  allWindows.value.map(({ transform, thumbnail, selected, id, hidden }) => ({
+  apiData.allWindows.map(({ transform, thumbnail, selected, id, hidden }) => ({
     transform: {
       x: transform.x,
       y: transform.y,
@@ -470,12 +468,21 @@ const minimapItems = computed(() =>
   }))
 );
 
+watch(
+  () => props.isMobile,
+  (m) => {
+    baseWindowSize.x = m ? 250 : 500;
+    baseWindowSize.y = m ? 250 : 500;
+  }
+);
+
+
 const onResize = debounce(() => {
-  baseWindowSize.x = isMobile.value ? 250 : 500;
-  baseWindowSize.y = isMobile.value ? 250 : 500;
   const { x, y, center, ratio } = getScreenDims();
+  // isMobile.value = x < 600;
+  // baseWindowSize.x = isMobile.value ? 250 : 500;
+  // baseWindowSize.y = isMobile.value ? 250 : 500;
   screenSize.x = x;
-  isMobile.value = x < 600;
   screenSize.y = y;
   screenSize.center = center;
   screenSize.ratio = ratio;
@@ -483,7 +490,7 @@ const onResize = debounce(() => {
 }, 500);
 
 function setInitalBoundaries() {
-  const bounds = createBoundaries(windows.value, baseWindowSize);
+  const bounds = createBoundaries(apiData.projectWindows, baseWindowSize);
   initialBoundaries.top = bounds.top;
   initialBoundaries.bottom = bounds.bottom;
   initialBoundaries.left = bounds.left;
@@ -491,27 +498,15 @@ function setInitalBoundaries() {
 }
 
 onMounted(async () => {
-  const apiRes = await loadApi();
-
-  if (apiRes && apiRes?.projects) {
-    PROJECTS.value = apiRes.projects;
-    windows.value = createProjectWindows(PROJECTS.value, baseWindowSize);
-    const mediaWindows = createAllProjectsMediaWindows(
-      PROJECTS.value,
-      windows.value,
-      baseWindowSize
-    );
-
-    // allProjectMediaWindows.value = Object.values(selectedProjectMediaWindows.value).flat(1)
-    allWindows.value = [
-      ...windows.value,
-      ...mediaWindows
-        .map(({ mediaWindows }) => mediaWindows)
-        .flat(1),
-    ];
     setInitalBoundaries();
-    animate();
-  }
+    const el = document.getElementById("page__index");
+    if (el) {
+      setTimeout(() => {
+        translateFrame(el, 1);
+        animate();
+      }, 500);
+    }
+  // }
 
   gestures = new GestureHandler({
     onStart,
@@ -527,17 +522,22 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  cancelAnimationFrame(frameId);
+  // cancelAnimationFrame(frameId);
   window.removeEventListener("resize", onResize);
   if (gestures) {
     gestures.destroy();
   }
 });
-</script>
 
-<style lang="sass">
-.dotted
-  background-image: radial-gradient($c-grey-2 1px, transparent 0)
-  background-size: 24px 24px
-  background-position: center center
-</style>
+// onBeforeRouteLeave(
+//   () =>
+//     new Promise((resolve, reject) => {
+//       const el = document.getElementById("page__index");
+//       if (el) {
+//         console.log(el);
+//         translateFrame(el, 0);
+//         setTimeout(() => resolve(true), 600);
+//       } else resolve(false);
+//     })
+// );
+</script>

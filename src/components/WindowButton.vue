@@ -26,6 +26,7 @@ const emit = defineEmits(["click"]);
 <style lang="sass">
 .window__btn
   @include fl-center
+  pointer-events: all
   justify-content: flex-start
   position: relative
   height: 18px
@@ -83,15 +84,16 @@ const emit = defineEmits(["click"]);
   &.enabled:hover span
     opacity: 1
 
-  &.enabled::after
+  &.enabled::after, &:not(.enabled):hover::after
     background-color: $c-green
 
-  &.enabled:hover::after
+  &:hover::after
     transform: scale(0.6666)
 
-  &.enabled:hover::before
+  &:hover::before
     cursor: pointer
     transform: translateX(0)
+
 
   &.active
     width: 67px

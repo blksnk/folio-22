@@ -1,5 +1,5 @@
 import { clamp } from "@/utils/math";
-import { Project, ProjectMedia } from "@/utils/api.types";
+import { ImageFormat, Project, ProjectMedia } from "@/utils/api.types";
 import {
   Vector2,
   Transform,
@@ -73,8 +73,8 @@ export const generateWindowSize = (
     y: 0,
   };
   // show whole image by compensating for tab bar
-  size.x = aspectRatio > 1 ? baseSize.x * aspectRatio : baseSize.x;
-  size.y = aspectRatio > 1 ? baseSize.y + 46 : baseSize.y / aspectRatio + 46;
+  size.x = aspectRatio > 1 ? baseSize.x * aspectRatio + 2 : baseSize.x + 2;
+  size.y = aspectRatio > 1 ? baseSize.y + 44 : baseSize.y / aspectRatio + 44;
   return size;
 };
 
@@ -193,7 +193,7 @@ export const generateWindowPositions = (
       currentWindowSize,
       windowPositions,
       index,
-      baseWindowSize.x / 6
+      96
     );
     windowSizes.push(currentWindowSize);
     windowPositions.push(position);
@@ -291,7 +291,7 @@ export const createMediaWindows = (
     rootWindow.thumbnail.original.aspectRatio,
     baseWindowSize
   );
-  const margin = baseWindowSize.x / 6;
+  const margin = 96;
   let offsetX = rootWindow.initialPosition.x + rootWindowSize.x;
 
   const firstWindowSize = generateWindowSize(
@@ -299,13 +299,9 @@ export const createMediaWindows = (
     baseWindowSize
   );
   const diffX = (firstWindowSize.x - rootWindowSize.x) / 2;
-  console.log(diffX);
-  console.error(rootWindow.title);
   offsetX += diffX;
 
-  const centerY = rootWindow.initialPosition.y + rootWindowSize.y / 2;
   const mediaWindows = projectMedias.map((media) => {
-    console.warn("offsetX: ", offsetX);
     const size = generateWindowSize(
       media.media.original.aspectRatio,
       baseWindowSize
@@ -351,3 +347,18 @@ export const createAllProjectsMediaWindows = (
   });
 
 export const isMediaWindow = (windowId: string) => windowId.includes("media");
+
+export const computeZoomTarget = (windowSize: Vector2) => {
+  const { x, y } = windowSize;
+  const widthRatio = window.innerWidth / (x + 300);
+  const heightRatio = window.innerHeight / (y + 300 + 46);
+  return Math.min(heightRatio, widthRatio);
+};
+
+export const translateFrame = (el: HTMLElement, val: number) => {
+  console.log(el);
+  el.style.transform = `scale(${val})`;
+  el.style.opacity = String(val);
+};
+
+export const px = (n: number | string) => n + "px";

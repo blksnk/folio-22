@@ -1,6 +1,6 @@
 <template>
   <div class="text-window" :style="style">
-    <h2 v-if="props?.title">{{ props.title }}</h2>
+    <h3 v-if="props?.title">{{ props.title }}</h3>
     <p>{{ props.content }}</p>
   </div>
 </template>

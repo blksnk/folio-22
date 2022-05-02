@@ -7,24 +7,28 @@ type onTouchFunc = (touches: Vector2[]) => void;
 
 type VectorArgFunc = (vec: Vector2, delta?: Vector2) => void;
 
+type DefaultVector2 = { x: 0; y: 0 };
+
+type onMoveFn = (vec: Vector2, delta: Vector2, fromWheel?: boolean) => void;
+
 interface GestureHandlerOptions {
-  onStart: VectorArgFunc;
-  onMove: VectorArgFunc;
+  onStart?: VectorArgFunc;
+  onMove?: onMoveFn;
   onTouch?: onTouchFunc;
   onPinch?: VectorArgFunc;
   onWheel?: VectorArgFunc;
-  onEnd: func;
+  onEnd?: func;
   target?: HTMLElement;
   preventDefault?: boolean;
 }
 
 class GestureHandler {
-  onStart: VectorArgFunc;
-  onMove: VectorArgFunc;
+  onStart?: VectorArgFunc;
+  onMove?: onMoveFn;
   onTouch?: onTouchFunc;
   onPinch?: VectorArgFunc;
   onWheel?: VectorArgFunc;
-  onEnd: func;
+  onEnd?: func;
   target: (Window & typeof globalThis) | HTMLElement = window;
   preventDefault = true;
 
@@ -34,16 +38,23 @@ class GestureHandler {
   private mousePos = reactive<Vector2>({ x: 0, y: 0 });
   private pinching = false;
   private multitouch = false;
+  public isTrackpad = false;
 
   constructor(options: GestureHandlerOptions) {
-    this.onStart = options.onStart;
-    this.onMove = options.onMove;
-    this.onEnd = options.onEnd;
     if (options.target) {
       this.target = options.target;
     }
     if (options.preventDefault) {
       this.preventDefault = options.preventDefault;
+    }
+    if (options.onStart) {
+      this.onStart = options.onStart;
+    }
+    if (options.onMove) {
+      this.onMove = options.onMove;
+    }
+    if (options.onEnd) {
+      this.onEnd = options.onEnd;
     }
     if (options.onTouch) {
       this.onTouch = options.onTouch;
@@ -81,7 +92,9 @@ class GestureHandler {
       passive: false,
     });
 
-    this.target.addEventListener("wheel", this._onWheel.bind(this));
+    this.target.addEventListener("wheel", this._onWheel.bind(this), {
+      passive: false,
+    });
   }
 
   destroy() {
@@ -105,30 +118,33 @@ class GestureHandler {
   private prevent(e: Event) {
     if (this.preventDefault) {
       e.preventDefault();
+      e.stopPropagation();
     }
   }
 
   _onMouseDown(e: Event) {
     this.mousePos.x = (e as MouseEvent).clientX;
     this.mousePos.y = (e as MouseEvent).clientY;
-    this.onStart(this.mousePos);
+    if (this.onStart) this.onStart(this.mousePos);
   }
 
   _onMouseUp() {
-    this.onEnd();
+    if (this.onEnd) this.onEnd();
   }
 
   _onMouseMove(e: Event) {
     this.prevent(e);
-    const x = (e as MouseEvent).clientX;
-    const y = (e as MouseEvent).clientY;
-    const delta = {
-      x: x - this.mousePos.x,
-      y: y - this.mousePos.y,
-    };
-    this.mousePos.x = x;
-    this.mousePos.y = y;
-    this.onMove(this.mousePos, delta);
+    if (this.onMove) {
+      const x = (e as MouseEvent).clientX;
+      const y = (e as MouseEvent).clientY;
+      const delta = {
+        x: x - this.mousePos.x,
+        y: y - this.mousePos.y,
+      };
+      this.mousePos.x = x;
+      this.mousePos.y = y;
+      this.onMove(this.mousePos, delta);
+    }
   }
 
   private getTouchPositions(touches: Touch[]): Vector2[] {
@@ -148,52 +164,66 @@ class GestureHandler {
   private handleMultitouch() {
     if (this.touches.length === 2) {
       this.handlePinch();
+      this.handleMove();
     }
   }
 
   private handlePinch() {
     // calc diffs between touch positions
-    const oldPositions = this.getTouchPositions(this.oldTouches);
-    const oldDiff = {
-      x: oldPositions[0].x - oldPositions[1].x,
-      y: oldPositions[0].y - oldPositions[1].y,
-    };
-    const newDiff = {
-      x: this.touchPositions[0].x - this.touchPositions[1].x,
-      y: this.touchPositions[0].y - this.touchPositions[1].y,
-    };
-
-    // const pinchDelta = largestAbsolute(oldDiff.x, oldDiff.y) - largestAbsolute(newDiff.x, newDiff.y);
     if (this.onPinch) {
+      const oldPositions = this.getTouchPositions(this.oldTouches);
+      const oldDiff = {
+        x: oldPositions[0].x - oldPositions[1].x,
+        y: oldPositions[0].y - oldPositions[1].y,
+      };
+      const newDiff = {
+        x: this.touchPositions[0].x - this.touchPositions[1].x,
+        y: this.touchPositions[0].y - this.touchPositions[1].y,
+      };
+
+      // const pinchDelta = largestAbsolute(oldDiff.x, oldDiff.y) - largestAbsolute(newDiff.x, newDiff.y);
       this.onPinch({ x: oldDiff.x - newDiff.x, y: oldDiff.y - newDiff.y });
     }
+  }
+
+  private handleMove() {
+    console.log(this.touches);
   }
 
   _onTouchStart(e: Event) {
     this.prevent(e);
     const touchEvent = e as TouchEvent;
-    this.oldTouches = [];
+    this.oldTouches = this.touches;
+    console.log(touchEvent);
     this.touches = [...touchEvent.changedTouches];
     this.touchPositions = this.getTouchPositions(this.touches);
     this.multitouch = this.touches.length > 1;
-    this.onStart(this.touchPositions[0]);
+    if (this.onStart) this.onStart(this.touchPositions[0]);
+
+    if (this.onTouch) this.onTouch(this.touchPositions);
   }
 
   _onTouchEnd(e: Event) {
     this.prevent(e);
-    this.removeTouches(e);
-    this.touchPositions = [];
-    this.onEnd();
+    if (this.onEnd) {
+      this.removeTouches(e);
+      this.touchPositions = [];
+      this.touches = [];
+      this.oldTouches = [];
+      this.onEnd();
+    }
   }
 
   _onTouchCancel(e: Event) {
     this.prevent(e);
     this.removeTouches(e);
     this.touchPositions = [];
+    if (this.onTouch) this.onTouch(this.touchPositions);
+
+    if (this.onEnd) this.onEnd();
   }
 
   _onTouchMove(e: Event) {
-    this.prevent(e);
     const touchEvent = e as TouchEvent;
     this.oldTouches = this.touches;
 
@@ -202,6 +232,8 @@ class GestureHandler {
     this.multitouch = this.touches.length > 1;
     this.touchPositions = this.getTouchPositions(this.touches);
     if (this.multitouch) {
+      this.prevent(e);
+      e.preventDefault();
       this.handleMultitouch();
     }
     if (this.onTouch) {
@@ -210,9 +242,33 @@ class GestureHandler {
   }
 
   _onWheel(e: Event) {
-    const { deltaX, deltaY } = e as WheelEvent;
-    if (this.onWheel) {
-      this.onWheel({ x: deltaX, y: deltaY });
+    this.detectTrackPad(e);
+    const E = e as WheelEvent;
+    const { deltaX, deltaY } = E;
+    const deltaVec = { x: deltaX, y: deltaY };
+    // change zoom
+    e.preventDefault();
+    if (this.isTrackpad) {
+      // console.log(E.ctrlKey);
+      if (E.ctrlKey && this.onWheel) {
+        this.onWheel(deltaVec);
+      } else if (this.onMove) {
+        this.onMove(this.mousePos, { x: -deltaVec.x, y: -deltaVec.y }, true);
+      }
+    } else {
+      if (this.onWheel) this.onWheel(deltaVec);
+    }
+  }
+
+  detectTrackPad(e: any) {
+    if (e.wheelDeltaY) {
+      if (e.wheelDeltaY === e.deltaY * -3) {
+        this.isTrackpad = true;
+      }
+    } else if (e.deltaMode === 0) {
+      this.isTrackpad = true;
+    } else {
+      this.isTrackpad = false;
     }
   }
 }

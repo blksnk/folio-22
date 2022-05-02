@@ -10,20 +10,13 @@ const router = createRouter({
       component: IndexView,
     },
     {
-      path: "/work",
-      name: "work",
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import("../views/AboutView.vue"),
-    },
-    {
       path: "/info",
       name: "info",
       // route level code-splitting
       // this generates a separate chunk (About.[hash].js) for this route
       // which is lazy-loaded when the route is visited.
       component: () => import("../views/AboutView.vue"),
+      props: true,
     },
   ],
 });

@@ -1,12 +1,47 @@
 <script setup lang="ts">
-import { RouterLink } from "vue-router";
+import { RouterLink, useRoute } from "vue-router";
+
+const route = useRoute();
+
+interface RouteMap {
+  [path: string]: { element: () => HTMLElement | null; title: string };
+}
+
+const routeElementsMap: RouteMap = {
+  "/": {
+    element: () => document.getElementById("page__index"),
+    title: "Index,\xa0",
+  },
+  "/info": {
+    element: () => document.getElementById("page__index"),
+    title: "Information",
+  },
+};
+
+const navigate = (to: string) => (e: Event) => {
+  if(e) {
+    e.preventDefault();
+  }
+  const activeRoutePath = route.path;
+  console.log(route)
+  if (activeRoutePath !== to) {
+    const targetRoute = routeElementsMap[to];
+    const activeRoute = routeElementsMap[activeRoutePath];
+    console.log(targetRoute, activeRoute);
+  }
+};
 </script>
 
 <template>
   <nav>
-    <RouterLink class="link" to="/">Index,&nbsp;</RouterLink>
-    <!-- <RouterLink class="link" to="/work">Work,&nbsp;</RouterLink> -->
-    <RouterLink class="link" to="/info">Information</RouterLink>
+    <RouterLink
+      v-for="[path, r] of Object.entries(routeElementsMap)"
+      class="link hover_underline"
+      :to="path"
+      :key="path"
+      >{{ r.title }}</RouterLink
+    >
+    <!-- <a class="link" href="/work">Work,&nbsp;</a> -->
   </nav>
 </template>
 
@@ -26,28 +61,15 @@ nav
 
 .link
   color: $c-grey-6
-  position: relative
   @include f-nav-link
-
-  &::after
-    position: absolute
-    content: ""
-    bottom: -2px
-    left: 0
-    background-color: $c-primary
-    height: 1px
-    width: 100%
-    transform: scaleX(0)
-    transition: transform .3s ease-in
-    transform-origin: center right
 
   &.router-link-active
     @include f-nav-link__active
     color: $c-primary
 
-  &:not(.router-link-active):hover::after
-    transform: scaleX(1)
-    transform-origin: center left
-    // text-decoration: underline
-    // text-decoration-color: $c-primary
+  // &:not(.router-link-active):hover::after
+  //   transform: scaleX(1)
+  //   transform-origin: center left
+  //   // text-decoration: underline
+  //   // text-decoration-color: $c-primary
 </style>

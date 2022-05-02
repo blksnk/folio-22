@@ -1,12 +1,13 @@
 <template>
-  <div id="overlay__frame">
+  <div class="overlay__frame">
     <div
       :class="{
         show: displayTitle,
+        overlay__frame__title: true,
+        scroll,
       }"
-      id="overlay__frame__title"
     >
-      <h1><span class="folder__name">Index // </span>{{ title }}</h1>
+      <h1><span @click="onClick()" class="folder__name">Index // </span>{{ title }}</h1>
       <WindowButton
         enabled
         active
@@ -26,6 +27,7 @@ import WindowButton from "@/components/WindowButton.vue";
 interface FixedFrameProps {
   displayTitle?: boolean;
   title?: string;
+  scroll?: boolean;
 }
 
 defineProps<FixedFrameProps>();
@@ -35,8 +37,8 @@ const emit = defineEmits(["close"]);
 const onClick = () => emit("close");
 </script>
 
-<style lang="sass">
-#overlay__frame
+<style scoped lang="sass">
+.overlay__frame
   position: fixed
   top: 20px
   bottom: 70px
@@ -47,8 +49,14 @@ const onClick = () => emit("close");
   overflow: hidden
   -webkit-overflow: hidden
   clip-path: border-box
+  transform: scale(0)
+  opacity: 0
+  transition: transform .6s ease-in, opacity .6s linear
 
-  #overlay__frame__title
+  &.scroll
+    overflow-y: scroll
+
+  .overlay__frame__title
     @include fl-sb
     position: absolute
     top: 0

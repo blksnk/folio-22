@@ -9,9 +9,16 @@
   font-weight: 500
 
 @font-face
-  font-family: "Giselle"
-  src: url("@/assets/fonts/FHGiselle-LightItalic.woff2") format("woff2")
+  font-family: "Canela"
+  src: url("@/assets/fonts/Canela-ThinItalic.otf") format("opentype")
   font-weight: 300
+  font-style: italic
+
+@font-face
+  font-family: "Canela"
+  src: url("@/assets/fonts/Canela-Thin.otf") format("opentype")
+  font-weight: 300
+  font-style: normal
 
 @mixin f-project-title
   font-family: "Neue"
@@ -29,10 +36,35 @@
   font-weight: 400
 
 @mixin f-nav-link__active
-  font-family: "Giselle"
+  font-family: "Canela"
+  font-style: italic
   font-size: 19px
   font-weight: 300
 
+h1
+  font-family: "Neue"
+  font-size: 96px
+  font-weight: 400
+  color: $c-white
+
 h2
-  @include f-project-title
+  font-family: "Canela"
+  font-style: normal
+  font-size: 96px
+  font-weight: 300
+  color: $c-grey-6
+
+  em
+    font-style: italic
+
+p
+  @include f-nav-link
+  color: $c-grey-5
+
+  em
+    font-family: "Canela"
+    color: $c-primary
+
+h3
+  @include f-project-title__light
   color: $c-grey-6

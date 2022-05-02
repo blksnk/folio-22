@@ -57,8 +57,8 @@ const renderRatio = computed<Vector2>(() => ({
 const itemScales = computed(() => props.items.map(({ ratio }) => {
   const s = generateWindowSize(ratio, { x: 1, y: 1} )
   return {
-    x: s.x,
-    y: s.y - 46
+    x: s.x - 2,
+    y: s.y - 44
   }
 }))
 
@@ -97,7 +97,7 @@ const minimapStyle = computed(
 #minimap
   @include blur-bg
   position: fixed
-  bottom: 82px
+  bottom: 32px
   left: 32px
   overflow: hidden
   border: $b-style
@@ -114,7 +114,9 @@ const minimapStyle = computed(
     transform-origin: center center
     pointer-events: all
     border: 1px solid $c-grey-6
+    background-color: transparent
     opacity: 1
+    pointer-events: all
 
     &.hidden
       opacity: 0

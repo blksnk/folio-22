@@ -1,6 +1,6 @@
 <template>
   <div
-    class="window__wrapper"
+    :class="{ window__wrapper: true, hidden }"
     :style="windowTransformStyleString"
     ref="windowWrapper"
   >
@@ -24,34 +24,31 @@
         :alt="props.title"
       />
       <div class="window-top" ref="windowTop">
-        <h2>{{ props.title }}</h2>
+        <div class="window__info">
+          <h3>{{ props.title }}</h3>
+
+          <div v-if="tags" class="window__tags" :class="{ hidden }">
+            <div v-for="tag in tags" :key="tag.uid" class="window__tag">
+              {{ tag.title }}
+            </div>
+          </div>
+        </div>
         <WindowButton
           text="open"
           activeText="close"
           :active="props.open"
           :enabled="props.selected"
           @click="onClick"
+          @mouseover.stop="onButtonMouseOver"
+          @mouseleave.stop="onButtonMouseLeave"
         />
-      </div>
-    </div>
-    <div v-if="tags" id="window__tags" :class="{ hidden }">
-      <div v-for="tag in tags" :key="tag.uid" class="window__tag">
-        <span>{{ tag.title }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  ref,
-  watchEffect,
-  reactive,
-  defineEmits,
-  onMounted,
-  watch,
-} from "vue";
+import { computed, ref, watchEffect, reactive, onMounted, watch } from "vue";
 import { generateWindowSize } from "@/utils/layout";
 import { Vector2, Transform } from "@/utils/layout.types";
 import { isBetween } from "@/utils/math";
@@ -108,7 +105,7 @@ const size = computed<Vector2>(() => {
 
   const s = generateWindowSize(aspectRatio, props.baseSize);
   if (props.open) {
-    s.y -= 46;
+    s.y -= 42;
   }
   return s;
 });
@@ -118,7 +115,7 @@ let translateOffset = computed<Vector2>(() => ({
   y: size.value.y / 2,
 }));
 
-const emit = defineEmits(["open", "close"]);
+const emit = defineEmits(["open", "close", "buttonOver", "buttonLeave"]);
 
 const onClick = () => {
   emit(props.open ? "close" : "open");
@@ -182,71 +179,12 @@ const tagWrapperStyle = computed(() =>
   })
 );
 
-function resetDraggableOffset() {
-  const move = () => {
-    draggableTransformOffset.x += (0 - draggableTransformOffset.x) * 0.015;
-    draggableTransformOffset.y += (0 - draggableTransformOffset.y) * 0.015;
-  };
-  const loop = () => {
-    if (
-      !isBetween(draggableTransformOffset.x, -0.1, 0.1) ||
-      !isBetween(draggableTransformOffset.x, -0.1, 0.1)
-    ) {
-      move();
-      requestAnimationFrame(loop);
-    }
-  };
-  loop();
-}
+const onButtonMouseOver = () => emit("buttonOver");
 
-watchEffect(() => {
-  if (
-    !props.draggable &&
-    (draggableTransformOffset.x !== 0 || draggableTransformOffset.y !== 0)
-  ) {
-    resetDraggableOffset();
-  }
-});
-
-const onStart = (e: MouseEvent) => {
-  lastMousePos.x = e.clientX;
-  lastMousePos.y = e.clientY;
-  if (props.draggable) {
-    mouseDown.value = true;
-  }
-};
-
-const onMove = (e: MouseEvent) => {
-  if (mouseDown.value) {
-    const delta: Vector2 = {
-      x: lastMousePos.x - e.clientX,
-      y: lastMousePos.y - e.clientY,
-    };
-    draggableTransformOffset.x += delta.x;
-    draggableTransformOffset.y += delta.y;
-  }
-  lastMousePos.x = e.clientX;
-  lastMousePos.y = e.clientY;
-};
-
-const onEnd = () => {
-  mouseDown.value = false;
-};
-
-onMounted(() => {
-  if (windowTop.value) {
-    windowTop.value.addEventListener("mousedown", onStart);
-  }
-  // window.addEventListener("resize", () => {
-  //   baseSize.x = window.innerWidth < 600 ? 250 : 500;
-  //   baseSize.y = window.innerWidth < 600 ? 250 : 500;
-  // });
-  window.addEventListener("mouseup", onEnd);
-  window.addEventListener("mousemove", onMove);
-});
+const onButtonMouseLeave = () => emit("buttonLeave");
 </script>
 
-<style lang="sass">
+<style scoped lang="sass">
 
 .window__wrapper
   position: absolute
@@ -256,6 +194,13 @@ onMounted(() => {
   width: 400px
   width: min-content
   height: min-content
+  z-index: 2
+
+  &.hidden
+    pointer-events: none
+    z-index: 1
+    user-select: none
+
 
 .window
   position: relative
@@ -271,6 +216,7 @@ onMounted(() => {
   cursor: pointer
   transform-origin: center center
   opacity: 1
+  z-index: 2
 
   .window-img
     position: absolute
@@ -290,14 +236,18 @@ onMounted(() => {
     left: -1px
     right: -1px
     padding: 12px
+    height: 44px
     border-bottom: $b-width solid $c-grey-6
     transition: background-color .6s linear, transform 0.6s ease-out .3s
 
-    h2
+    .window__info
+      @include fl-start
+
+    h3
       @include f-project-title
       color: $c-grey-1
       opacity: 0
-      transition: opacity .6s linear
+      transition: opacity .6s linear, color .3s linear .6s
       user-select: none
       -webkit-user-select: none
       cursor: default
@@ -321,9 +271,9 @@ onMounted(() => {
       background-color: $c-grey-6
       transition: background-color .3s linear, transform 0.3s ease-out .3s
 
-      h2
+      h3
         opacity: 1
-        transition-delay: .3s
+        transition-delay: 0s
         transition-duration: .3s
 
       .window-btn
@@ -333,41 +283,58 @@ onMounted(() => {
         &:hover
           transform: scale(1.2)
 
-  &.selected, &:hover
-    // filter: blur(0px)
 
   &.hidden
     transition: filter .2s ease-out 0s, background-position .3s ease-in-out 0s, opacity .6s linear 0s, transform .6s ease-in 0s
     opacity: 0
-    pointer-events: none
+    pointer-events: none !important
     user-select: none
+    z-index: 1
 
   &.open
     transition: filter .2s ease-out 0s, background-position .3s ease-in-out 0s, opacity .6s linear 0s, height .3s linear 0s
 
     .window-top
-      transform: translateY(-46px)
+      transform: translateY(-44px)
       transition: background-color .6s linear, transform 0.3s ease-in 0s
 
-#window__tags
-  position: absolute
-  left: 0
-  top: calc(100% + 12px)
-  display: flex
-  justify-content: flex-start
-  align-items: center
-  transform-origin: top left
-  gap: 12px
-  opacity: 1
-  transition: opacity .2s linear 0s
-
-  .window__tag
-    @include blur-bg
-    padding: 6px 12px
-    color: $c-grey-6
-    border-radius: 24px
-    background-color: rgba(12, 12, 12, .8)
-
-  &.hidden
+  .window__tags
+    // position: absolute
+    // left: 0
+    // top: calc(100% + 12px)
+    display: flex
+    justify-content: flex-start
+    align-items: center
+    transform-origin: top left
+    gap: 12px
     opacity: 0
+    // width: max-content
+    transition: opacity .3s linear 0s
+
+    .window__tag
+      @include f-project-title__light
+      border: 1px solid $c-grey-1
+      padding: 3px 6px
+      color: $c-grey-1
+      border-radius: 24px
+      transition: border-color .3s linear .3s, color .3s linear .6s
+      // background-color: rgba(12, 12, 12, .8)
+
+  &.selected .window__tags, &:hover .window__tags
+    opacity: 1
+    transition: opacity .3s linear .6s
+
+  &:hover:not(.selected) .window__tag
+    color: $c-grey-6
+    border-color: $c-grey-6
+    transition: border-color .3s linear .3s, color 0s linear 0s
+
+  &:hover:not(.selected) h3
+    color: $c-grey-6
+    opacity: 1
+    transition: opacity .6s linear, color .0s linear 0s
+
+  &.selected .window__tag
+    transition: border-color .6s linear 0s, color .6s linear 0s
+
 </style>

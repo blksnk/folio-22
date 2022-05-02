@@ -2,26 +2,30 @@
   <img
     :class="{
       ui__image: true,
-      fill: props.fill,
-      showcase: props.showcase,
+      fill,
+      showcase,
+      cover,
     }"
     :srcset="srcset"
     :sizes="sizes"
     :src="defaultSrc"
     :alt="alt"
+    :style="style"
     ref="imgRef"
   />
 </template>
 
 <script setup lang="ts">
 import { ImageFormats } from "@/utils/api.types";
-import { computed, ref } from "vue";
+import { computed, StyleValue, ref } from "vue";
 
 interface ImageProps {
   sources: ImageFormats;
   alt?: string;
-  fill: boolean;
+  fill?: boolean;
   showcase: boolean;
+  style?: StyleValue;
+  cover?: boolean;
 }
 
 const imgRef = ref<HTMLImageElement>();
@@ -65,14 +69,20 @@ const sizes = computed(() =>
   object-position: center center
   user-select: none
   pointer-events: none
-  transform: translateY(20.5px) scale(1)
+  transform: translateY(21.5px) scale(1)
   transition: transform .6s ease-in-out 0s
 
   &.fill
-    transform: translateY(0px) scale(1.1)
+    transform: translateY(0px) scale(1.15)
     transition: transform .6s ease-out 0s
 
   &.showcase
     transform: translateY(0px) scale(1)
     transition: transform .3s ease-out 0s
+
+  &.cover
+    @include bordered
+    object-fit: none
+    
+    
 </style>

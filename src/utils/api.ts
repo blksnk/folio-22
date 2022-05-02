@@ -53,6 +53,9 @@ export const extractProjectType = ({
 
 export const formatImageFormat = (format: ImageFormat_Raw): ImageFormat => {
   const { height, width, ext, path, size, url } = format;
+  // preload img
+  const i = new Image();
+  i.src = url;
   return {
     height,
     width,
@@ -134,7 +137,6 @@ export const formatProjects = (projects: Project_Raw[]): Project[] => {
 export const loadApi = async () => {
   try {
     const projects = await fetchProjects();
-    console.log(projects);
     const formattedProjects = formatProjects(projects.data);
 
     // if (storeReference) {
