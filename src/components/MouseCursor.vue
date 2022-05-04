@@ -3,11 +3,11 @@
     <div
       id="cursor"
       :class="{
-        active: props.showText,
+        active: mouseData.showCursor,
       }"
     >
-      <ion-icon v-if="icon" :name="icon" id="cursor__icon"></ion-icon>
-      <span v-else id="cursor__text">{{ displayText }}</span>
+      <ion-icon v-if="mouseData.cursorIcon" :name="mouseData.cursorIcon" id="cursor__icon"></ion-icon>
+      <span v-else id="cursor__text">{{ mouseData.cursorText }}</span>
     </div>
   </div>
 </template>
@@ -15,26 +15,18 @@
 <script lang="ts" setup>
 import { computed } from "vue";
 import { Vector2 } from "@/utils/layout.types";
+import { useMouseData } from "@/stores/mouseData";
 
-interface CursorProps {
-  mousePos: Vector2;
-  text?: string;
-  showText: boolean;
-  icon?: string;
-}
-
-const props = defineProps<CursorProps>();
+const mouseData = useMouseData();
 
 const size: Vector2 = { x: 130, y: 130 };
 
 const containerStyle = computed(
   () =>
-    `transform: translate(${props.mousePos.x - size.x / 2}px, ${
-      props.mousePos.y - size.y / 2
+    `transform: translate(${mouseData.mousePos.x - size.x / 2}px, ${
+      mouseData.mousePos.y - size.y / 2
     }px);`
 );
-
-const displayText = computed(() => props?.text || "View");
 </script>
 
 <style lang="sass">

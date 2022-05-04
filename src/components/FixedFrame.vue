@@ -49,9 +49,9 @@ const onClick = () => emit("close");
   overflow: hidden
   -webkit-overflow: hidden
   clip-path: border-box
-  transform: scale(0)
+  // transform: scale(0)
   opacity: 0
-  transition: transform .6s ease-in, opacity .6s linear
+  transition: opacity .6s linear
 
   &.scroll
     overflow-y: scroll

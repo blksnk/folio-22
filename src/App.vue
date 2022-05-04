@@ -4,7 +4,7 @@ import { onMounted, ref, reactive, onBeforeUnmount } from "vue";
 // import { useApiData } from "@/stores/apiData";
 // import { loadApi } from "./utils/api";
 import { Vector2, ScreenDims } from "@/utils/layout.types";
-import { createAllProjectsMediaWindows, createProjectWindows, getScreenDims } from "@/utils/layout";
+import { getScreenDims } from "@/utils/layout";
 import GestureHandler from "./utils/gesture";
 
 import { useApiData } from "@/stores/apiData";
@@ -22,10 +22,7 @@ const apiData = useApiData()
 const gestureData = useGestureData()
 
 const isMobile = ref<boolean>(window.innerWidth < 600);
-const baseWindowSize = reactive<Vector2>({
-  x: isMobile.value ? 250 : 500,
-  y: isMobile.value ? 250 : 500,
-});
+
 
 // cursor vars
 
@@ -39,15 +36,15 @@ const cursorIcon = ref<string | undefined>("eye-outline");
 // cursor handling
 
 function translateCursor() {
-  mousePos.x += (targetMousePos.x - mousePos.x) * 0.15;
-  mousePos.y += (targetMousePos.y - mousePos.y) * 0.15;
+  mousePos.x += (targetMousePos.x - mousePos.x) * 0.09;
+  mousePos.y += (targetMousePos.y - mousePos.y) * 0.09;
   mouseData.setMousePos(mousePos)
 }
 
 // scroll handling
 function updateScrollPos() {
-  gestureData.scrollPos.x += (gestureData.targetScrollPos.x - gestureData.scrollPos.x) * 0.15;
-  gestureData.scrollPos.y += (gestureData.targetScrollPos.y - gestureData.scrollPos.y) * 0.15;
+  gestureData.scrollPos.x += (gestureData.targetScrollPos.x - gestureData.scrollPos.x) * 0.09;
+  gestureData.scrollPos.y += (gestureData.targetScrollPos.y - gestureData.scrollPos.y) * 0.09;
 }
 
 // gesture vars
@@ -66,7 +63,7 @@ const onEndVal = ref<boolean>(false);
 const onStart = (vec: Vector2) => {
   onStartVector2.x = vec.x;
   onStartVector2.y = vec.y;
-  mouseDown.value = true;
+  mouseData.mouseDown = true;
 };
 
 const onEnd = () => {
@@ -78,8 +75,6 @@ const onMove = (vec: Vector2, delta: Vector2) => {
   targetMousePos.x = vec.x;
   targetMousePos.y = vec.y;
   onMoveVector2.value = vec;
-  gestureData.targetScrollPos.x += delta.x
-  gestureData.targetScrollPos.y += delta.y
 };
 
 const onTouch = (positions: Vector2[]) => {
@@ -91,8 +86,8 @@ const onTouch = (positions: Vector2[]) => {
   onTouchPositions.value = positions;
 };
 
-const onWheel = (vec: Vector2) => {
-  onWheelVector2.value = vec;
+const onWheel = ({deltaX, deltaY}: WheelEvent) => {
+  gestureData.setTargetScrollPos({x: deltaX, y: deltaY})
 };
 
 const onPinch = (vec: Vector2) => {
@@ -102,8 +97,12 @@ const onPinch = (vec: Vector2) => {
 // resize event handler
 
 const onResize = () => {
-  const { x } = getScreenDims();
-  isMobile.value = x < 600;
+  const { x, y } = getScreenDims();
+  apiData.isMobile = x < 600;
+  apiData.baseWindowSize = {
+      x: x < 600 ? 250 : 500,
+      y: y < 600 ? 250 : 500,
+  }
 };
 
 // main animation loop. runs every frame.
@@ -114,32 +113,20 @@ const animateLoop = () => {
   frameId = requestAnimationFrame(animateLoop);
 };
 
-// update listeners
-
-const updateShowCursor = (v: boolean) => {
-  showCursor.value = v;
-};
-const updateCursorText = (v: string) => {
-  cursorText.value = v;
-};
-const updateCursorIcon = (v: string | undefined) => {
-  cursorIcon.value = v;
-};
-
 onMounted(() => {
-  apiData.load(baseWindowSize)
+  apiData.load(apiData.baseWindowSize)
 
   gestures = new GestureHandler({
     onStart,
     onEnd,
     onMove,
     onTouch,
-    onWheel,
     onPinch,
     preventDefault: true,
   });
 
   window.addEventListener("resize", onResize);
+  window.addEventListener("wheel", onWheel)
 
   animateLoop();
 });
@@ -153,14 +140,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <router-view v-if="apiData.loaded" v-bind="{
-    isMobile,
-  }" @update:showCursor="updateShowCursor" @update:cursorText="updateCursorText"
-    @update:cursorIcon="updateCursorIcon">
+  <router-view v-if="apiData.loaded">
   </router-view>
   <NavBar />
   <AppLogo />
-  <MouseCursor v-if="!isMobile" :mousePos="mousePos" :showText="showCursor" :text="cursorText" :icon="cursorIcon" />
+  <MouseCursor v-if="!apiData.isMobile" />
 </template>
 
 <style lang="sass">

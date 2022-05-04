@@ -12,16 +12,16 @@ const createRandomRect = (
   imgWidth: number,
   imgHeight: number,
   maxSize = 600,
-  minSize = 200
+  minSize = 150
 ) => {
   const ratio = imgWidth / imgHeight;
   const width = Math.max(
     minSize,
-    Math.round(Math.random() * (maxSize * ratio))
+    Math.round(Math.random() * (maxSize * ratio) * 1.2)
   );
   const height = Math.max(
     minSize,
-    Math.round(Math.random() * (maxSize * ratio))
+    Math.round(Math.random() * (maxSize * ratio) * 1.5)
   );
   const x = Math.round(Math.random() * (imgWidth - width));
   const y = Math.round(Math.random() * (imgHeight - height));
@@ -44,9 +44,13 @@ export const createRects = (
     rects.push(createRandomRect(imgWidth, imgHeight));
   }
 
-  console.log(rects);
+  const sorted = rects.sort((a: RectProps, b: RectProps) =>
+    a.width * a.height < b.width * b.height ? 1 : -1
+  );
 
-  return rects;
+  console.log(sorted);
+
+  return sorted;
 };
 
 export const preloadImage = async (

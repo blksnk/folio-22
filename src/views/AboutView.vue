@@ -1,8 +1,8 @@
 <template>
-  <fixed-frame id="page__about" class="dotted">
+  <fixed-frame id="page__info" class="dotted">
       <clipped-image/>
     
-    <div id="about__content">
+    <div id="about__content" :style="contentStyle">
       <h1>Jean-Nicolas Veigel</h1>
       <h2>Paris-area&#8212;<em>based</em></h2>
       <h2>Creative Developer</h2>
@@ -16,44 +16,89 @@
         I have had the opportunity to work with various clients in the field,
         learning and teaching skills along the way.
       </p>
+
+      <h3 class="about__heading">Work experience</h3>
+      <div id="jobs" class="table">
+        <div class="table__header">
+          <span>Client</span>
+          <span>Role</span>
+          <span>Year</span>
+        </div>
+        <a class="table__row hover_underline__parent" v-for="job in jobs" target="_blank" :title="job.client.name" :href="job.client.website">
+          <div>
+            <span class="hover_underline">{{job.client.name}}</span>
+          </div>
+          <span>{{job.role}}</span>
+          <span>{{job.year}}</span>
+        </a>
+      </div>
+      <h3 class="about__heading">Spoken languages</h3>
+      <div class="table">
+        <div class="table__header reversed">
+          <span>Flag</span>
+          <span>Language</span>
+          <span>Level</span>
+        </div>
+        <div class="table__row reversed">
+          <f-r/>
+          <span>French</span>
+          <span>Native Language</span>
+        </div>
+        <div class="table__row reversed">
+          <e-n/>
+          <span>English</span>
+          <span>Fluent</span>
+        </div>
+        <div class="table__row reversed">
+          <d-e/>
+          <span>German</span>
+          <span>C1</span>
+        </div>
+        <div class="table__row reversed">
+          <e-s/>
+          <span>Spanish</span>
+          <span>B1 </span>
+        </div>
+        <div class="table__row reversed">
+          <j-p/>
+          <span>Japanese</span>
+          <span>A1</span>
+        </div>
+      </div>
     </div>
   </fixed-frame>
 </template>
 
 <script setup lang="ts">
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
-import { onMounted, defineProps } from "vue";
+import { onMounted, defineProps, computed } from "vue";
 import FixedFrame from "@/components/FixedFrame.vue";
 
-import { translateFrame } from "@/utils/layout";
+import { px, translateFrame } from "@/utils/layout";
 import ClippedImage from "@/components/ClippedImage.vue";
 import { useMouseData } from "@/stores/mouseData";
+import { useGestureData } from "@/stores/gestureData";
 
-const mouseData = useMouseData()
+import { jobs } from "@/utils/jobs";
+import ES from "@/components/icons/flags/ES.vue";
+import DE from "@/components/icons/flags/DE.vue";
+import EN from "@/components/icons/flags/EN.vue";
+import FR from "@/components/icons/flags/FR.vue";
+import JP from "@/components/icons/flags/JP.vue";
+import { onInfoEnter, onInfoLeave } from "@/utils/transition";
+
+const gestureData = useGestureData()
 
 onBeforeRouteLeave(
-  () =>
-    new Promise((resolve, reject) => {
-      const el = document.getElementById("page__about");
-      if (el) {
-        console.log(el);
-        translateFrame(el, 0);
-        setTimeout(() => resolve(true), 600);
-      } else resolve(false);
-    })
+  onInfoLeave
 );
 
-onMounted(
-  () =>
-    new Promise((resolve, reject) => {
-      const el = document.getElementById("page__about");
-      if (el) {
-        console.log(el);
-        translateFrame(el, 1);
-        setTimeout(() => resolve(true), 600);
-      } else resolve(false);
-    })
+onMounted(() => {
+  onInfoEnter()
+}
 );
+
+const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scrollPos.y)})`)
 
 </script>
 
@@ -88,8 +133,46 @@ onMounted(
 
   p
     grid-column: 3 / 6
+    mix-blend-mode: difference
+
+    em
+      mix-blend-mode: normal
 
     &:first-of-type
-      margin-top: 52px
+      margin-top: 64px
+
+  .about__heading
+    grid-column: 2 / -1
+    margin-top: 64px
+
+  .table
+    grid-column: 3 / span 4
+    
+    .table__row, .table__header
+      display: grid
+      color: $c-grey-4
+      grid-template-columns: 2fr 2fr 1fr
+      margin-top: 12px
+      align-items: center
+
+      &.reversed
+        grid-template-columns: 1fr 2fr 2fr
+
+
+
+      
+
+    .table__header
+      border-bottom: 1px solid $c-grey-6
+      padding-bottom: 12px
+      color: $c-grey-6
+
+    .table__row
+      transition: color .2s linear 0s
+      
+      &:hover
+        color: $c-white
+
+
       
 </style>

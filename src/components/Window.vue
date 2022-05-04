@@ -61,6 +61,7 @@ import {
 import WindowButton from "./WindowButton.vue";
 import Image from "./ui/Image.vue";
 import { ScreenDims } from "@/utils/layout.types";
+import { useApiData } from "@/stores/apiData";
 
 export interface WindowProps {
   transform: Transform;
@@ -73,11 +74,12 @@ export interface WindowProps {
   open: boolean;
   draggable?: boolean;
   hidden: boolean;
-  baseSize: Vector2;
   screenSize: ScreenDims;
   tags?: ProjectTag[];
 }
 const props = defineProps<WindowProps>();
+
+const apiData = useApiData()
 
 const windowTop = ref<HTMLElement | null>(null);
 
@@ -85,25 +87,15 @@ const windowRef = ref<HTMLElement | null>(null);
 
 const windowWrapper = ref<HTMLElement | null>(null);
 
-let wrapperStyle = ref<string>("transform: rotate3d(0,0,0,0deg)");
-
-let prevStyle = "";
-
 const draggableTransformOffset = reactive<Vector2>({
   x: 0,
   y: 0,
 });
 
-const mouseDown = ref(false);
-const lastMousePos: Vector2 = {
-  x: 0,
-  y: 0,
-};
-
 const size = computed<Vector2>(() => {
   const { aspectRatio } = props.thumbnail.large;
 
-  const s = generateWindowSize(aspectRatio, props.baseSize);
+  const s = generateWindowSize(aspectRatio, apiData.baseWindowSize);
   if (props.open) {
     s.y -= 42;
   }
@@ -128,20 +120,6 @@ const isVisible = (t: Transform): boolean =>
   t.y + size.value.y > -size.value.y / 2 &&
   t.y - size.value.y / 2 < props.screenSize.y * 2;
 
-// const transformStyle = computed(() => {
-//   const center = {
-//     x: translateOffset.value.x + draggableTransformOffset.x,
-//     y: translateOffset.value.y + draggableTransformOffset.y + 46,
-//   };
-//   // console.log(transform)
-
-//   if (isVisible(props.transform) && !props.hidden) {
-//     const style = createWindowTransformStyle(props.transform, center);
-//     prevStyle = style;
-//     return style;
-//   }
-//   return prevStyle;
-// });
 
 const windowTransform = ref({ x: 0, scale: 0, y: 0 });
 
@@ -155,8 +133,9 @@ watchEffect(() => {
   }
 });
 
-const windowTransformStyleString = computed(() =>
-  createTransformString(windowTransform.value)
+const windowTransformStyleString = computed(() => ({
+  transform: createTransformString(windowTransform.value)
+})
 );
 
 // watchEffect(() => {

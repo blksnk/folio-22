@@ -19,7 +19,6 @@
       :velocity="velocity"
       :zoomFactor="zoomFactor.value"
       :hidden="window.hidden"
-      :baseSize="baseWindowSize"
       :screenSize="screenSize"
       :tags="window?.tags"
       @mouseup="() => selectWindow(window.id, false)"
@@ -53,10 +52,7 @@ import {
   onBeforeUnmount,
   onMounted,
   computed,
-  defineProps,
   ref,
-  watch,
-  defineEmits,
 } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 import { debounce } from "lodash";
@@ -69,7 +65,6 @@ import GestureHandler from "@/utils/gesture";
 import {
   createBoundaries,
   keepInBoundaries,
-  translateFrame,
   isMediaWindow,
   generateWindowSize,
   computeZoomTarget,
@@ -80,26 +75,15 @@ import {
   Boundary,
   Vector2,
 } from "@/utils/layout.types";
+import { onIndexEnter, onIndexLeave } from "@/utils/transition";
 import { clamp, getScaleCoef, largestAbsolute, isBetween } from "@/utils/math";
-import { PageProps } from "@/utils/gestures.types";
 import { useApiData } from "@/stores/apiData";
+import { useMouseData } from "@/stores/mouseData";
 
-interface IndexPageProps extends PageProps {}
-
-const props = defineProps<IndexPageProps>();
-
-const emit = defineEmits([
-  "update:showCursor",
-  "update:cursorText",
-  "update:cursorIcon",
-]);
+const mouseData = useMouseData();
+const apiData = useApiData();
 
 let screenSize = reactive<ScreenDims>(getScreenDims());
-
-const baseWindowSize = reactive<Vector2>({
-  x: props.isMobile ? 250 : 500,
-  y: props.isMobile ? 250 : 500,
-});
 
 let mouseDown = false;
 let lastMousePos: Vector2 = { x: 0, y: 0 };
@@ -112,8 +96,8 @@ let translating = reactive({ value: false });
 let selectedId = reactive<{ id: string | number }>({ id: 0 });
 let gestures: GestureHandler | undefined;
 let zoomFactor = reactive({ value: 0.15 });
-let preTranslateZoomTarget = props.isMobile ? 0.8 : 0.5;
-let zoomTarget = props.isMobile ? 0.8 : 0.6;
+let preTranslateZoomTarget = apiData.isMobile ? 0.8 : 0.5;
+let zoomTarget = apiData.isMobile ? 0.8 : 0.6;
 let dragDezooming = false;
 
 let debugLine = reactive<Vector2>({ x: 0, y: 0 });
@@ -156,8 +140,6 @@ const effectiveBoundaries = computed(() => {
 });
 
 const translatePosition = reactive<Vector2>({ x: 0, y: 0 });
-
-const apiData = useApiData()
 
 function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   return Math.max(
@@ -205,7 +187,6 @@ function onStart({ x, y }: Vector2): void {
   // wait for a click on window. if no click, toggle zoom animation on move
   // if (!isWindowOpen.value) {
 
-  console.log('aaaaaa')
   if (!translating.value && !isWindowOpen.value && !dragDezooming) {
     setTimeout(() => {
       if (!dragDezooming && mouseDown) {
@@ -257,7 +238,7 @@ function onEnd(): void {
 //   }
 // }
 
-function onMove(_: Vector2, { x, y }: Vector2, fromTrackpad?: boolean): void {
+function onMove(fromTouch: Vector2, { x, y }: Vector2, fromTrackpad?: boolean): void {
   if (mouseDown || fromTrackpad) {
     // zoomTarget = zoomFactor.value;
     translating.value = false;
@@ -269,12 +250,17 @@ function onMove(_: Vector2, { x, y }: Vector2, fromTrackpad?: boolean): void {
       velocity.y = y * (2 - zoomFactor.value);
     }
   }
+
+  if(fromTouch && !fromTrackpad) {
+    
+  }
   // lastMousePos.x = x;
   // lastMousePos.y = y;
 }
 
 function onTouch(touchPositions: Vector2[]): void {
   // isMobile.value = true;
+  console.log(touchPositions)
   if (touchPositions.length === 1) {
     onMove({ x: 0, y: 0 }, touchPositions[0]);
   }
@@ -373,13 +359,15 @@ const selectWindow = (
     selectedId.id = targetId;
     translating.value = true;
     // default to hiding cursor on click
-    emit("update:showCursor", forceShowCursor);
+    mouseData.showCursor = forceShowCursor;
+    // emit("update:showCursor", forceShowCursor);
+    mouseData;
     const zoom =
       zt ||
       computeZoomTarget(
         generateWindowSize(
           window.thumbnail.original.aspectRatio,
-          baseWindowSize
+          apiData.baseWindowSize
         )
       );
     console.log("zoom", zoom);
@@ -427,20 +415,24 @@ function applyZoom() {
 
 function onMouseOver(windowId: string) {
   if (selectedId.id !== windowId && !getWindowById(windowId)?.hidden) {
-    emit("update:showCursor", true);
-    emit("update:cursorIcon", "eye-outline");
+    mouseData.showCursor = true;
+    mouseData.cursorIcon = "eye-outline";
+    // emit("update:showCursor", true);
+    // emit("update:cursorIcon", "eye-outline");
 
     if (isMediaWindow(windowId)) {
-      emit("update:cursorText", "View");
-      emit("update:cursorIcon", undefined);
+      mouseData.cursorText = "View";
+      mouseData.cursorIcon = undefined;
+      // emit("update:cursorText", "View");
+      // emit("update:cursorIcon", undefined);
     }
   }
 }
 
 function onMouseLeave() {
-  emit("update:showCursor", false);
+  mouseData.showCursor = false;
+  // emit("update:showCursor", false);
 }
-
 
 function animate(): void {
   frameId = requestAnimationFrame(animate);
@@ -468,14 +460,13 @@ const minimapItems = computed(() =>
   }))
 );
 
-watch(
-  () => props.isMobile,
-  (m) => {
-    baseWindowSize.x = m ? 250 : 500;
-    baseWindowSize.y = m ? 250 : 500;
-  }
-);
-
+// watch(
+//   () => props.isMobile,
+//   (m) => {
+//     baseWindowSize.x = m ? 250 : 500;
+//     baseWindowSize.y = m ? 250 : 500;
+//   }
+// );
 
 const onResize = debounce(() => {
   const { x, y, center, ratio } = getScreenDims();
@@ -490,7 +481,7 @@ const onResize = debounce(() => {
 }, 500);
 
 function setInitalBoundaries() {
-  const bounds = createBoundaries(apiData.projectWindows, baseWindowSize);
+  const bounds = createBoundaries(apiData.projectWindows, apiData.baseWindowSize);
   initialBoundaries.top = bounds.top;
   initialBoundaries.bottom = bounds.bottom;
   initialBoundaries.left = bounds.left;
@@ -498,15 +489,10 @@ function setInitalBoundaries() {
 }
 
 onMounted(async () => {
-    setInitalBoundaries();
-    const el = document.getElementById("page__index");
-    if (el) {
-      setTimeout(() => {
-        translateFrame(el, 1);
-        animate();
-      }, 500);
-    }
-  // }
+  setInitalBoundaries();
+  onIndexEnter();
+  animate();
+
 
   gestures = new GestureHandler({
     onStart,
@@ -540,4 +526,8 @@ onBeforeUnmount(() => {
 //       } else resolve(false);
 //     })
 // );
+
+onBeforeRouteUpdate(onIndexEnter);
+
+onBeforeRouteLeave(onIndexLeave);
 </script>

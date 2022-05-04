@@ -31,8 +31,8 @@ export const createWindowTransformStyle = (
   // return `transform: translate3d(${x}px, ${y}px, 0px) scale(${scale}, ${scale})`;
 };
 
-export const createTransformString = (t: Transform) =>
-  `transform: translate3d(${t.x}px, ${t.y}px, 0px) scale(${t.scale}, ${t.scale})`;
+export const createTransformString = (t: Transform): string =>
+  `translate3d(${t.x}px, ${t.y}px, 0px) scale(${t.scale}, ${t.scale})`;
 
 export const createWindowWrapperRotation = (velocity: Vector2) => {
   const rotationX = clamp(velocity.y / ROTATION_DAMPENING, -1, 1);
@@ -355,10 +355,14 @@ export const computeZoomTarget = (windowSize: Vector2) => {
   return Math.min(heightRatio, widthRatio);
 };
 
-export const translateFrame = (el: HTMLElement, val: number) => {
+export const translateFrame = (
+  el: HTMLElement,
+  transform: Transform = { x: 0, y: 0, scale: 1 },
+  opacity = 1
+) => {
   console.log(el);
-  el.style.transform = `scale(${val})`;
-  el.style.opacity = String(val);
+  el.style.transform = createTransformString(transform);
+  el.style.opacity = String(opacity);
 };
 
 export const px = (n: number | string) => n + "px";

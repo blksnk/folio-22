@@ -15,11 +15,18 @@ export const useApiData = defineStore("apiData", {
     projectWindows: WindowData[];
     mediaWindows: ProjectMediaWindows[];
     loaded: boolean;
+    isMobile: boolean;
+    baseWindowSize: Vector2;
   } => ({
     projects: [],
     projectWindows: [],
     mediaWindows: [],
     loaded: false,
+    isMobile: window.innerWidth < 600,
+    baseWindowSize: {
+      x: window.innerWidth < 600 ? 250 : 500,
+      y: window.innerWidth < 600 ? 250 : 500,
+    },
   }),
   getters: {
     allWindows: (state) => [

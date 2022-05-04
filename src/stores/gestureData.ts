@@ -21,8 +21,15 @@ export const useGestureData = defineStore("gestureData", {
         y: Math.max(Math.min(newVec.y, this.scrollMax.y), 0),
       };
     },
-    setTargetScrollPos(newVec: Vector2) {
-      this.targetScrollPos = newVec;
+    incrementScrollPos(newVec: Vector2) {
+      this.scrollPos = {
+        x: Math.max(Math.min(newVec.x + this.scrollPos.x, this.scrollMax.x), 0),
+        y: Math.max(Math.min(newVec.y + this.scrollPos.y, this.scrollMax.y), 0),
+      };
+    },
+    setTargetScrollPos(deltas: Vector2) {
+      this.targetScrollPos.x = Math.max(deltas.x + this.targetScrollPos.x, 0);
+      this.targetScrollPos.y = Math.max(deltas.y + this.targetScrollPos.y, 0);
     },
     updateStore(key: string, v: unknown) {
       this[key] = v;
