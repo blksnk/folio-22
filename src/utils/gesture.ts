@@ -11,6 +11,7 @@ type DefaultVector2 = { x: 0; y: 0 };
 
 type onMoveFn = (vec: Vector2, delta: Vector2, fromWheel?: boolean) => void;
 
+type EventListener = (e: Event) => void;
 interface GestureHandlerOptions {
   onStart?: VectorArgFunc;
   onMove?: onMoveFn;
@@ -31,6 +32,14 @@ class GestureHandler {
   onEnd?: func;
   target: (Window & typeof globalThis) | HTMLElement = window;
   preventDefault = true;
+  _onMouseDown_bound: EventListener;
+  _onMouseUp_bound: EventListener;
+  _onMouseMove_bound: EventListener;
+  _onTouchStart_bound: EventListener;
+  _onTouchEnd_bound: EventListener;
+  _onTouchMove_bound: EventListener;
+  _onTouchCancel_bound: EventListener;
+  _onWheel_bound: EventListener;
 
   private touches: Touch[] = [];
   private touchPositions: Vector2[] = [];
@@ -66,53 +75,56 @@ class GestureHandler {
       this.onPinch = options.onPinch;
     }
 
+    this._onMouseDown_bound = this._onMouseDown.bind(this);
+    this._onMouseUp_bound = this._onMouseUp.bind(this);
+    this._onMouseMove_bound = this._onMouseMove.bind(this);
+    this._onTouchStart_bound = this._onTouchStart.bind(this);
+    this._onTouchEnd_bound = this._onTouchEnd.bind(this);
+    this._onTouchCancel_bound = this._onTouchCancel.bind(this);
+    this._onTouchMove_bound = this._onTouchMove.bind(this);
+    this._onWheel_bound = this._onWheel.bind(this);
+
     this.init();
   }
 
   init() {
-    this.target.addEventListener("mousedown", this._onMouseDown.bind(this));
-    this.target.addEventListener("mouseup", this._onMouseUp.bind(this));
-    this.target.addEventListener("mousemove", this._onMouseMove.bind(this));
+    this.target.addEventListener("mousedown", this._onMouseDown_bound);
+    this.target.addEventListener("mouseup", this._onMouseUp_bound);
+    this.target.addEventListener("mousemove", this._onMouseMove_bound);
 
-    this.target.addEventListener("touchstart", this._onTouchStart.bind(this), {
+    this.target.addEventListener("touchstart", this._onTouchStart_bound, {
       passive: false,
     });
-    this.target.addEventListener("touchend", this._onTouchEnd.bind(this), {
+    this.target.addEventListener("touchend", this._onTouchEnd_bound, {
       passive: false,
     });
-    this.target.addEventListener(
-      "touchcancel",
-      this._onTouchCancel.bind(this),
-      { passive: false }
-    );
-    this.target.addEventListener("touchleave", this._onTouchEnd.bind(this), {
+    this.target.addEventListener("touchcancel", this._onTouchCancel_bound, {
       passive: false,
     });
-    this.target.addEventListener("touchmove", this._onTouchMove.bind(this), {
+    this.target.addEventListener("touchleave", this._onTouchEnd_bound, {
+      passive: false,
+    });
+    this.target.addEventListener("touchmove", this._onTouchMove_bound, {
       passive: false,
     });
 
-    this.target.addEventListener("wheel", this._onWheel.bind(this), {
+    this.target.addEventListener("wheel", this._onWheel_bound, {
       passive: false,
     });
   }
 
   destroy() {
-    this.target.removeEventListener("mousedown", this._onMouseDown.bind(this));
-    this.target.removeEventListener("mouseup", this._onMouseUp.bind(this));
-    this.target.removeEventListener("mousemove", this._onMouseMove.bind(this));
+    console.warn("remove gesture events");
+    this.target.removeEventListener("mousedown", this._onMouseDown_bound);
+    this.target.removeEventListener("mouseup", this._onMouseUp_bound);
+    this.target.removeEventListener("mousemove", this._onMouseMove_bound);
 
-    this.target.removeEventListener(
-      "touchstart",
-      this._onTouchStart.bind(this)
-    );
-    this.target.removeEventListener("touchend", this._onTouchEnd.bind(this));
-    this.target.removeEventListener(
-      "touchcancel",
-      this._onTouchCancel.bind(this)
-    );
-    this.target.removeEventListener("touchleave", this._onTouchEnd.bind(this));
-    this.target.removeEventListener("touchmove", this._onTouchMove.bind(this));
+    this.target.removeEventListener("touchstart", this._onTouchStart_bound);
+    this.target.removeEventListener("touchend", this._onTouchEnd_bound);
+    this.target.removeEventListener("touchcancel", this._onTouchCancel_bound);
+    this.target.removeEventListener("touchleave", this._onTouchEnd_bound);
+    this.target.removeEventListener("touchmove", this._onTouchMove_bound);
+    this.target.removeEventListener("wheel", this._onWheel_bound);
   }
 
   private prevent(e: Event) {
@@ -164,7 +176,6 @@ class GestureHandler {
   private handleMultitouch() {
     if (this.touches.length === 2) {
       this.handlePinch();
-      this.handleMove();
     }
   }
 
@@ -186,12 +197,8 @@ class GestureHandler {
     }
   }
 
-  private handleMove() {
-    console.log(this.touches);
-  }
-
   _onTouchStart(e: Event) {
-    this.prevent(e);
+    // this.prevent(e);
     const touchEvent = e as TouchEvent;
     this.oldTouches = this.touches;
     console.log(touchEvent);
@@ -204,7 +211,7 @@ class GestureHandler {
   }
 
   _onTouchEnd(e: Event) {
-    this.prevent(e);
+    // this.prevent(e);
     if (this.onEnd) {
       this.removeTouches(e);
       this.touchPositions = [];

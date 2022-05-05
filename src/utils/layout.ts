@@ -43,7 +43,6 @@ export const createWindowWrapperRotation = (velocity: Vector2) => {
     0,
     ROTATION_AMOUNT,
   ].join(", ");
-  console.log(velocity, rotation);
   return `transform: rotate3d(${rotation})`;
 };
 
@@ -348,21 +347,11 @@ export const createAllProjectsMediaWindows = (
 
 export const isMediaWindow = (windowId: string) => windowId.includes("media");
 
-export const computeZoomTarget = (windowSize: Vector2) => {
+export const computeZoomTarget = (windowSize: Vector2, margin = 300) => {
   const { x, y } = windowSize;
-  const widthRatio = window.innerWidth / (x + 300);
-  const heightRatio = window.innerHeight / (y + 300 + 46);
+  const widthRatio = window.innerWidth / (x + margin);
+  const heightRatio = window.innerHeight / (y + margin + 46);
   return Math.min(heightRatio, widthRatio);
-};
-
-export const translateFrame = (
-  el: HTMLElement,
-  transform: Transform = { x: 0, y: 0, scale: 1 },
-  opacity = 1
-) => {
-  console.log(el);
-  el.style.transform = createTransformString(transform);
-  el.style.opacity = String(opacity);
 };
 
 export const px = (n: number | string) => n + "px";

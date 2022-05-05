@@ -74,9 +74,8 @@ import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 import { onMounted, defineProps, computed } from "vue";
 import FixedFrame from "@/components/FixedFrame.vue";
 
-import { px, translateFrame } from "@/utils/layout";
+import { px } from "@/utils/layout";
 import ClippedImage from "@/components/ClippedImage.vue";
-import { useMouseData } from "@/stores/mouseData";
 import { useGestureData } from "@/stores/gestureData";
 
 import { jobs } from "@/utils/jobs";
@@ -92,9 +91,11 @@ const gestureData = useGestureData()
 onBeforeRouteLeave(
   onInfoLeave
 );
+onBeforeRouteUpdate(onInfoEnter)
 
 onMounted(() => {
   onInfoEnter()
+  gestureData.targetScrollPos = {x: 0, y: 0}
 }
 );
 
@@ -112,7 +113,7 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
 #about__content
   position: relative
   min-height: 100vh
-  padding: 44px
+  padding: 42px
   display: grid
   grid-template-columns: repeat(10, 1fr)
   grid-auto-rows: min-content
@@ -121,19 +122,31 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
   max-height: 100%
   z-index: 2
 
+  @media screen and (max-width: 600px)
+    padding: 12px
+
   *
     grid-row: auto
 
   h1, h2
     grid-column: 1 / -1
     grid-row: auto
+    mix-blend-mode: difference
 
     &.tab
       grid-column: 3 / -1
+      
+      @media screen and (max-width: 600px)
+        grid-column: 2 / -1
 
+  h1, h2, h3, p, span
+    text-shadow: 1px 2px 24px rgba(12, 12, 12, 1)
   p
     grid-column: 3 / 6
     mix-blend-mode: difference
+
+    @media screen and (max-width: 600px)
+        grid-column: 2 / -2
 
     em
       mix-blend-mode: normal
@@ -144,9 +157,18 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
   .about__heading
     grid-column: 2 / -1
     margin-top: 64px
+    
+    @media screen and (max-width: 600px)
+        grid-column: 1 / -1
 
   .table
     grid-column: 3 / span 4
+    
+    @media screen and (max-width: 600px)
+        grid-column: 2 / -1
+
+    span
+      @include f-nav-link
     
     .table__row, .table__header
       display: grid
@@ -157,10 +179,6 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
 
       &.reversed
         grid-template-columns: 1fr 2fr 2fr
-
-
-
-      
 
     .table__header
       border-bottom: 1px solid $c-grey-6

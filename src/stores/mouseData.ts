@@ -23,7 +23,7 @@ export const useMouseData = defineStore("mouseData", {
   getters: {
     normalizedMousePos: (state) => ({
       x: (state.mousePos.x / window.innerWidth - 0.5) * 2,
-      y: (state.mousePos.y / window.innerWidth - 0.5) * 2,
+      y: (state.mousePos.y / window.innerHeight - 0.5) * 2,
     }),
   },
   actions: {

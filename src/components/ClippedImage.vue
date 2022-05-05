@@ -15,15 +15,13 @@
 </template>
 
 <script lang="ts" setup>
+import { computed, onBeforeUnmount, watchEffect, ref, defineProps } from "vue";
 import { useGestureData } from "@/stores/gestureData";
 import { useMouseData } from "@/stores/mouseData";
 import { ImageFormats } from "@/utils/api.types";
-import GestureHandler from "@/utils/gesture";
 import { createTransformString, px } from "@/utils/layout";
-import { Vector2 } from "@/utils/layout.types";
-import { createRects, preloadImage } from "@/utils/visual";
+import { createRects, preloadImage, computeBoundingRect } from "@/utils/visual";
 import { RectProps } from "@/utils/visual.types";
-import { computed, onBeforeUnmount, onMounted, ref, defineProps } from "vue";
 
 const mouseData = useMouseData();
 const gestureData = useGestureData();
@@ -32,53 +30,40 @@ let rects = ref<RectProps[]>([]);
 
 const imgFormats = ref<ImageFormats | undefined>();
 
-const TRANSLATE_AMOUNT = -7;
+const TRANSLATE_AMOUNT = -8;
 
 preloadImage(15).then((i) => {
   if (i) {
     imgFormats.value = i;
-    rects.value = createRects(7, i.large.width, i.large.height);
+    rects.value = createRects(5, i.large.width, i.large.height);
   }
 });
 
+const boundingRect = computed<RectProps>(() =>
+  computeBoundingRect(rects.value)
+);
+
 const imgStyles = computed(() =>
-  rects.value.map((rect, index) => {
-    return {
-      height: px(rect.height),
-      width: px(rect.width),
-      top: px(rect.y),
-      left: px(rect.x),
-      objectPosition: px(-rect.x) + " " + px(-rect.y),
-      transform: createTransformString({
-        x: TRANSLATE_AMOUNT * mouseData.normalizedMousePos.x * (index + 1),
-        y:
-          TRANSLATE_AMOUNT *
-          (mouseData.normalizedMousePos.y + gestureData.scrollPos.y / 4) *
-          (index + 1),
-        scale: 1,
-      }),
-    };
-  })
+  rects.value.map((rect, index) => ({
+    height: px(rect.height),
+    width: px(rect.width),
+    top: px(rect.y - boundingRect.value.y),
+    left: px(rect.x - boundingRect.value.x),
+    objectPosition: px(-rect.x) + " " + px(-rect.y),
+    transform: createTransformString({
+      x: TRANSLATE_AMOUNT * mouseData.normalizedMousePos.x * (index + 1),
+      y:
+        TRANSLATE_AMOUNT * mouseData.normalizedMousePos.y * (index + 1) -
+        gestureData.scrollPos.y * 0.3 * ((index + 1) * .5),
+      scale: 1,
+    }),
+  }))
 );
 
 const containerStyle = computed(() => ({
-  width: px(imgFormats.value?.large.width || 0),
-  height: px(imgFormats.value?.large.height || 0),
+  width: px(boundingRect.value.width - boundingRect.value.x || 0),
+  height: px(boundingRect.value.height - boundingRect.value.y || 0),
 }));
-// const onMove = (mousePos: Vector2) => {
-//   normalizedMousePos.value.x = (mousePos.x / window.innerWidth - .5) * 2
-//   normalizedMousePos.value.y = (mousePos.y / window.innerHeight - .5) * 2
-// }
-
-// onMounted(() => {
-//   gestures = new GestureHandler({
-//     onMove,
-//   })
-// })
-
-// onBeforeUnmount(() => {
-//   if(gestures) gestures.destroy()
-// })
 </script>
 
 <style lang="sass">
@@ -97,4 +82,5 @@ const containerStyle = computed(() => ({
   left: 0
   object-fit: none
   object-size: 70vw auto
+  mix-blend-mode: exclusion
 </style>

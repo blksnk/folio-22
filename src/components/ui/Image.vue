@@ -61,8 +61,8 @@ const sizes = computed(() =>
 <style lang="sass">
 
 .ui__image
-  image-rendering: crisp-edges
   image-rendering: -webkit-optimize-contrast
+  image-rendering: crisp-edges
   width: 100%
   height: 100%
   object-fit: contain

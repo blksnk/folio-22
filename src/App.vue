@@ -15,13 +15,11 @@ import NavBar from "./components/NavBar.vue";
 import AppLogo from "./components/icons/AppLogo.vue";
 import MouseCursor from "@/components/MouseCursor.vue";
 
-let frameId = 0
+let frameId = 0;
 
-const mouseData = useMouseData()
-const apiData = useApiData()
-const gestureData = useGestureData()
-
-const isMobile = ref<boolean>(window.innerWidth < 600);
+const mouseData = useMouseData();
+const apiData = useApiData();
+const gestureData = useGestureData();
 
 
 // cursor vars
@@ -29,69 +27,67 @@ const isMobile = ref<boolean>(window.innerWidth < 600);
 const mousePos = reactive<Vector2>({ x: 0, y: 0 });
 const targetMousePos = reactive<Vector2>({ x: 0, y: 0 });
 const mouseDown = ref<boolean>(false);
-const showCursor = ref(false);
-const cursorText = ref("Select");
-const cursorIcon = ref<string | undefined>("eye-outline");
 
+const SCROLL_MULTIPLIER = apiData.isMobile ? 1.5 : 1
 // cursor handling
 
 function translateCursor() {
-  mousePos.x += (targetMousePos.x - mousePos.x) * 0.09;
-  mousePos.y += (targetMousePos.y - mousePos.y) * 0.09;
-  mouseData.setMousePos(mousePos)
+  mouseData.mousePos.x += (mouseData.targetMousePos.x - mouseData.mousePos.x) * 0.09;
+  mouseData.mousePos.y += (mouseData.targetMousePos.y - mouseData.mousePos.y) * 0.09;
 }
 
 // scroll handling
 function updateScrollPos() {
-  gestureData.scrollPos.x += (gestureData.targetScrollPos.x - gestureData.scrollPos.x) * 0.09;
-  gestureData.scrollPos.y += (gestureData.targetScrollPos.y - gestureData.scrollPos.y) * 0.09;
+  gestureData.scrollPos.x +=
+    (gestureData.targetScrollPos.x - gestureData.scrollPos.x) * 0.09;
+  gestureData.scrollPos.y +=
+    (gestureData.targetScrollPos.y - gestureData.scrollPos.y) * 0.09;
 }
 
 // gesture vars
 
 let gestures: GestureHandler | undefined;
 
-const onStartVector2 = reactive<Vector2>({ x: 0, y: 0 });
-const onMoveVector2 = ref<Vector2>({ x: 0, y: 0 });
-const onWheelVector2 = ref<Vector2>({ x: 0, y: 0 });
-const onPinchVector2 = ref<Vector2>({ x: 0, y: 0 });
-const onTouchPositions = ref<Vector2[]>([]);
-const onEndVal = ref<boolean>(false);
-
 // gesture handling
 
 const onStart = (vec: Vector2) => {
-  onStartVector2.x = vec.x;
-  onStartVector2.y = vec.y;
+  mouseData.targetMousePos.x = vec.x;
+  mouseData.targetMousePos.y = vec.y;
   mouseData.mouseDown = true;
 };
 
 const onEnd = () => {
-  mouseDown.value = false;
-  onEndVal.value = !onEndVal.value;
+  mouseData.mouseDown = false;
 };
 
 const onMove = (vec: Vector2, delta: Vector2) => {
-  targetMousePos.x = vec.x;
-  targetMousePos.y = vec.y;
-  onMoveVector2.value = vec;
+  mouseData.targetMousePos.x = vec.x;
+  mouseData.targetMousePos.y = vec.y;
+
+  if(mouseData.mousDown) {
+    gestureData.setTargetScrollPos(delta)
+  }
 };
 
 const onTouch = (positions: Vector2[]) => {
-  if (!mouseDown.value && positions.length > 1) {
-    mouseDown.value = true;
-  } else if (mouseDown.value) {
-    mouseDown.value = false;
+  // if (!mouseDown.value && positions.length > 1) {
+  //   mouseDown.value = true;
+  // } else if (mouseDown.value) {
+  //   mouseDown.value = false;
+  // }
+  if (positions.length === 1) {
+    const deltas = {
+      x: (mouseData.targetMousePos.x - positions[0].x) * SCROLL_MULTIPLIER,
+      y: (mouseData.targetMousePos.y - positions[0].y) * SCROLL_MULTIPLIER,
+    }
+    gestureData.setTargetScrollPos(deltas);
+    mouseData.targetMousePos.x = positions[0].x
+    mouseData.targetMousePos.y = positions[0].y
   }
-  onTouchPositions.value = positions;
 };
 
-const onWheel = ({deltaX, deltaY}: WheelEvent) => {
-  gestureData.setTargetScrollPos({x: deltaX, y: deltaY})
-};
-
-const onPinch = (vec: Vector2) => {
-  onPinchVector2.value = vec;
+const onWheel = ({ deltaX, deltaY }: WheelEvent) => {
+  gestureData.setTargetScrollPos({ x: deltaX, y: deltaY });
 };
 
 // resize event handler
@@ -100,9 +96,9 @@ const onResize = () => {
   const { x, y } = getScreenDims();
   apiData.isMobile = x < 600;
   apiData.baseWindowSize = {
-      x: x < 600 ? 250 : 500,
-      y: y < 600 ? 250 : 500,
-  }
+    x: x < 600 ? 250 : 500,
+    y: y < 600 ? 250 : 500,
+  };
 };
 
 // main animation loop. runs every frame.
@@ -114,25 +110,26 @@ const animateLoop = () => {
 };
 
 onMounted(() => {
-  apiData.load(apiData.baseWindowSize)
+  apiData.load(apiData.baseWindowSize);
 
   gestures = new GestureHandler({
     onStart,
     onEnd,
     onMove,
     onTouch,
-    onPinch,
     preventDefault: true,
   });
 
   window.addEventListener("resize", onResize);
-  window.addEventListener("wheel", onWheel)
+  window.addEventListener("wheel", onWheel);
 
   animateLoop();
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("resize", onResize);
+  window.removeEventListener("wheel", onWheel);
+  cancelAnimationFrame(frameId);
   if (gestures) {
     gestures.destroy();
   }
@@ -140,8 +137,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <router-view v-if="apiData.loaded">
-  </router-view>
+  <router-view v-if="apiData.loaded && apiData.imgsPreloaded"> </router-view>
   <NavBar />
   <AppLogo />
   <MouseCursor v-if="!apiData.isMobile" />

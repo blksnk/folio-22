@@ -62,7 +62,6 @@ const itemScales = computed(() => props.items.map(({ ratio }) => {
   }
 }))
 
-const ITEM_MARGIN = 10
 
 const minimapItemStyles = computed<MinimapItemProps[]>(() =>
   props.items

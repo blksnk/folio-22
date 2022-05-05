@@ -5,6 +5,8 @@ import {
   createProjectWindows,
 } from "@/utils/layout";
 import { WindowData, ProjectMediaWindows, Vector2 } from "@/utils/layout.types";
+import { preloadImage, preloadImg } from "@/utils/visual";
+import { catchClause } from "@babel/types";
 import { defineStore } from "pinia";
 
 type Callback = (arg: any) => void;
@@ -15,24 +17,35 @@ export const useApiData = defineStore("apiData", {
     projectWindows: WindowData[];
     mediaWindows: ProjectMediaWindows[];
     loaded: boolean;
+    imgsPreloaded: boolean;
     isMobile: boolean;
     baseWindowSize: Vector2;
+    selectedId: string | number;
   } => ({
     projects: [],
     projectWindows: [],
     mediaWindows: [],
     loaded: false,
+    imgsPreloaded: false,
     isMobile: window.innerWidth < 600,
     baseWindowSize: {
-      x: window.innerWidth < 600 ? 250 : 500,
-      y: window.innerWidth < 600 ? 250 : 500,
+      x: window.innerWidth < 600 ? 300 : 500,
+      y: window.innerWidth < 600 ? 300 : 500,
     },
+    selectedId: 0,
   }),
   getters: {
     allWindows: (state) => [
       ...state.mediaWindows.map(({ mediaWindows }) => mediaWindows).flat(1),
       ...state.projectWindows,
     ],
+    openWindow: (state): WindowData | undefined =>
+      state.projectWindows.find((el) => el.open),
+    isWindowOpen: (state): boolean =>
+      state.projectWindows.some((el: WindowData) => el.open),
+    selectedWindow(state): WindowData | undefined {
+      return this.allWindows.find((el) => el.id === state.selectedId);
+    },
   },
   actions: {
     async load(
@@ -43,7 +56,6 @@ export const useApiData = defineStore("apiData", {
       try {
         const res = await loadApi();
         if (res?.projects) {
-          console.log(res);
           this.projects = res.projects;
           this.projectWindows = createProjectWindows(
             res.projects,
@@ -54,6 +66,7 @@ export const useApiData = defineStore("apiData", {
             this.projectWindows,
             baseWindowSize
           );
+          await this.preloadImages(onError);
           this.loaded = true;
 
           if (onSuccess) onSuccess(res.projects);
@@ -61,6 +74,29 @@ export const useApiData = defineStore("apiData", {
       } catch (e) {
         if (onError) onError(e);
       }
+    },
+    async preloadImages(onError?: Callback) {
+      try {
+        const imgUrls = this.allWindows
+          .map(({ thumbnail }) =>
+            Object.values(thumbnail)
+              .map(({ url }) => url)
+              .filter((url) => url !== undefined)
+          )
+          .flat(1);
+        const preloaded = await Promise.all<Promise<boolean>[]>(
+          imgUrls.map((url) => preloadImg(url))
+        );
+        const loaded = preloaded.every((bool) => bool);
+        this.imgsPreloaded = loaded;
+        return loaded;
+      } catch (e) {
+        if (onError) onError(e);
+        return false;
+      }
+    },
+    getWindowById(windowId: string | number): WindowData | undefined {
+      return this.allWindows.find(({ id }) => id === windowId);
     },
   },
 });

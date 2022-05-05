@@ -1,11 +1,10 @@
 <template>
   <FixedFrame
     class="dotted"
-    @close="() => onClose(openWindow?.id)"
+    @close="() => onClose(apiData.openWindow?.id)"
     :displayTitle="isWindowOpen"
     :title="openWindow?.title"
     id="page__index"
-    ref="frameRef"
   >
     <Window
       v-for="window in apiData.allWindows"
@@ -22,6 +21,7 @@
       :screenSize="screenSize"
       :tags="window?.tags"
       @mouseup="() => selectWindow(window.id, false)"
+      @touchend="() => selectWindow(window.id, false)"
       @mouseover="onMouseOver(window.id)"
       @mouseleave="onMouseLeave()"
       @buttonOver="onMouseLeave()"
@@ -47,13 +47,7 @@ export const getScreenDims = () => ({
 </script>
 
 <script setup lang="ts">
-import {
-  reactive,
-  onBeforeUnmount,
-  onMounted,
-  computed,
-  ref,
-} from "vue";
+import { reactive, onBeforeUnmount, onMounted, computed, ref, watchEffect } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 import { debounce } from "lodash";
 
@@ -93,7 +87,7 @@ let minMoveFactor = 0.55;
 let dragFactor = 0.9;
 let frameId = 0;
 let translating = reactive({ value: false });
-let selectedId = reactive<{ id: string | number }>({ id: 0 });
+// let selectedId = reactive<{ id: string | number }>({ id: 0 });
 let gestures: GestureHandler | undefined;
 let zoomFactor = reactive({ value: 0.15 });
 let preTranslateZoomTarget = apiData.isMobile ? 0.8 : 0.5;
@@ -115,13 +109,10 @@ const isWindowOpen = computed<boolean>(() =>
 const openWindow = computed<WindowData | undefined>(() =>
   apiData.projectWindows.find((el: WindowData) => el.open)
 );
-const allWindows = ref<WindowData[]>([]);
 
-const selectedWindow = computed<WindowData | undefined>(() =>
-  apiData.allWindows.find((el) => el.id === selectedId.id)
-);
-
-const frameRef = ref<HTMLElement | null>(null);
+// const selectedWindow = computed<WindowData | undefined>(() =>
+//   apiData.allWindows.find((el) => el.id === selectedId.id)
+// );
 
 // takes zoom into account
 const effectiveBoundaries = computed(() => {
@@ -139,8 +130,6 @@ const effectiveBoundaries = computed(() => {
   return initialBoundaries;
 });
 
-const translatePosition = reactive<Vector2>({ x: 0, y: 0 });
-
 function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   return Math.max(
     Math.abs(screenSize.center[vectorName] - value) / screenSize[vectorName] +
@@ -152,8 +141,6 @@ function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
 function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
   const zoom = zoomFactor.value;
   const zoomInvert = 1 - zoom;
-  translatePosition.x += vel.x * (2 - zoom);
-  translatePosition.y += vel.y * (2 - zoom);
 
   windows.forEach((window, index) => {
     const { x, y } = window.transform;
@@ -169,6 +156,7 @@ function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
       isBetween(offsetFromCenter.y, 0.5, 0.7) &&
       !translating.value &&
       !isMediaWindow(window.id)
+      // apiData.selectedId !== window.id
     ) {
       setWindowSelection(window.id);
     }
@@ -178,14 +166,12 @@ function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
       window.transformPreZoom.x * zoom + screenSize.center.x * zoomInvert;
     window.targetTransform.y =
       window.transformPreZoom.y * zoom + screenSize.center.y * zoomInvert;
-    // window.targetTransform.scale = window.hidden ? 0.2 : scale * zoom;
     window.targetTransform.scale = scale * zoom;
   });
 }
 
 function onStart({ x, y }: Vector2): void {
   // wait for a click on window. if no click, toggle zoom animation on move
-  // if (!isWindowOpen.value) {
 
   if (!translating.value && !isWindowOpen.value && !dragDezooming) {
     setTimeout(() => {
@@ -199,7 +185,6 @@ function onStart({ x, y }: Vector2): void {
   lastMousePos.x = x;
   lastMousePos.y = y;
   mouseDown = true;
-  // }
 }
 
 function onEnd(): void {
@@ -210,35 +195,11 @@ function onEnd(): void {
   mouseDown = false;
 }
 
-// function keepInBounds() {
-//   const bounds = effectiveBoundaries.value;
-//   let diffX = 0;
-//   let diffY = 0;
-//   if (translatePosition.x > bounds.min.x) {
-//     diffX = -10;
-//   }
-//   if (translatePosition.x < bounds.max.x) {
-//     diffX = 10;
-//   }
-//   if (translatePosition.y > bounds.min.y) {
-//     diffY = -10;
-//   }
-//   if (translatePosition.y < bounds.max.y) {
-//     diffY = 10;
-//   }
-//   if (diffX || diffY) {
-//     console.log("BOUNDARY BREAK");
-//     if (screenSize.x < 600) {
-//       diffX *= 0.75;
-//       diffY *= 0.5;
-//     }
-//     mouseDown = false;
-//     velocity.x += diffX;
-//     velocity.y += diffY;
-//   }
-// }
-
-function onMove(fromTouch: Vector2, { x, y }: Vector2, fromTrackpad?: boolean): void {
+function onMove(
+  fromTouch: Vector2,
+  { x, y }: Vector2,
+  fromTrackpad?: boolean
+): void {
   if (mouseDown || fromTrackpad) {
     // zoomTarget = zoomFactor.value;
     translating.value = false;
@@ -251,18 +212,23 @@ function onMove(fromTouch: Vector2, { x, y }: Vector2, fromTrackpad?: boolean): 
     }
   }
 
-  if(fromTouch && !fromTrackpad) {
-    
+  if (fromTouch && !fromTrackpad) {
   }
   // lastMousePos.x = x;
   // lastMousePos.y = y;
 }
 
 function onTouch(touchPositions: Vector2[]): void {
-  // isMobile.value = true;
-  console.log(touchPositions)
   if (touchPositions.length === 1) {
-    onMove({ x: 0, y: 0 }, touchPositions[0]);
+    onMove(
+      { x: 0, y: 0 },
+      {
+        x: touchPositions[0].x - lastMousePos.x,
+        y: touchPositions[0].y - lastMousePos.y,
+      }
+    );
+    lastMousePos.x = touchPositions[0].x;
+    lastMousePos.y = touchPositions[0].y;
   }
 }
 
@@ -284,7 +250,7 @@ function decreaseVelocity(dragFactor = 0.0) {
 }
 
 function setWindowSelection(selectId: number | string) {
-  selectedId.id = selectId;
+  // apiData.selectedId = selectId
   apiData.allWindows.forEach((window) => {
     window.selected = window.id === selectId;
   });
@@ -345,7 +311,7 @@ const selectWindow = (
   event?: MouseEvent,
   zt?: number
 ) => {
-  const window = getWindowById(targetId);
+  const window = apiData.getWindowById(targetId);
   if (event) {
     event.preventDefault();
     event.stopPropagation();
@@ -353,11 +319,14 @@ const selectWindow = (
 
   if (
     window &&
-    (selectedId.id !== targetId || openWindow.value?.id === targetId) &&
+    (apiData.selectedId !== targetId || apiData.openWindow?.id === targetId) &&
     !window.hidden
   ) {
-    selectedId.id = targetId;
-    translating.value = true;
+    console.log("selected", window.title);
+    console.log("\n\n");
+
+    
+    apiData.selectedId = targetId;
     // default to hiding cursor on click
     mouseData.showCursor = forceShowCursor;
     // emit("update:showCursor", forceShowCursor);
@@ -368,18 +337,20 @@ const selectWindow = (
         generateWindowSize(
           window.thumbnail.original.aspectRatio,
           apiData.baseWindowSize
-        )
+        ),
+        apiData.isMobile ? 100 : 300
       );
-    console.log("zoom", zoom);
     zoomTarget = zoom;
     preTranslateZoomTarget = zoom;
-    setWindowSelection(targetId);
+    // setWindowSelection(targetId);
+    translating.value = true;
   }
 };
 
 function translateToTargetPos() {
-  if (selectedWindow?.value && translating.value) {
-    const { x, y } = selectedWindow.value.transform;
+  // const selected = apiData.getWindowById(apiData.selectedId);
+  if (apiData.selectedWindow && translating.value) {
+    const { x, y } = apiData.selectedWindow.transform;
     const dstToTarget = {
       x: screenSize.center.x - x,
       y: screenSize.center.y - y,
@@ -393,6 +364,7 @@ function translateToTargetPos() {
       velocity.y += (dstToTarget.y * 0.005) / screenSize.ratio;
     } else if (translating.value) {
       translating.value = false;
+      setWindowSelection(apiData.selectedId)
     }
   }
 }
@@ -414,7 +386,10 @@ function applyZoom() {
 }
 
 function onMouseOver(windowId: string) {
-  if (selectedId.id !== windowId && !getWindowById(windowId)?.hidden) {
+  if (
+    apiData.selectedId !== windowId &&
+    !apiData.getWindowById(windowId)?.hidden
+  ) {
     mouseData.showCursor = true;
     mouseData.cursorIcon = "eye-outline";
     // emit("update:showCursor", true);
@@ -437,8 +412,8 @@ function onMouseLeave() {
 function animate(): void {
   frameId = requestAnimationFrame(animate);
   applyZoom();
-  tranformWindowsOnDrag(velocity, apiData.allWindows);
   translateToTargetPos();
+  tranformWindowsOnDrag(velocity, apiData.allWindows);
   // translateCursor();
   // keepInBounds();
   // keepInBoundaries(translatePosition, effectiveBoundaries.value);
@@ -481,7 +456,10 @@ const onResize = debounce(() => {
 }, 500);
 
 function setInitalBoundaries() {
-  const bounds = createBoundaries(apiData.projectWindows, apiData.baseWindowSize);
+  const bounds = createBoundaries(
+    apiData.projectWindows,
+    apiData.baseWindowSize
+  );
   initialBoundaries.top = bounds.top;
   initialBoundaries.bottom = bounds.bottom;
   initialBoundaries.left = bounds.left;
@@ -492,7 +470,6 @@ onMounted(async () => {
   setInitalBoundaries();
   onIndexEnter();
   animate();
-
 
   gestures = new GestureHandler({
     onStart,
@@ -507,27 +484,26 @@ onMounted(async () => {
   window.addEventListener("resize", onResize);
 });
 
+watchEffect(() => {
+  console.log(apiData.selectedWindow)
+})
+
 onBeforeUnmount(() => {
   // cancelAnimationFrame(frameId);
   window.removeEventListener("resize", onResize);
+  translating.value = false;
   if (gestures) {
     gestures.destroy();
   }
 });
 
-// onBeforeRouteLeave(
-//   () =>
-//     new Promise((resolve, reject) => {
-//       const el = document.getElementById("page__index");
-//       if (el) {
-//         console.log(el);
-//         translateFrame(el, 0);
-//         setTimeout(() => resolve(true), 600);
-//       } else resolve(false);
-//     })
-// );
-
 onBeforeRouteUpdate(onIndexEnter);
 
-onBeforeRouteLeave(onIndexLeave);
+onBeforeRouteLeave(
+  onIndexLeave(() => {
+    if (gestures) {
+      gestures.destroy();
+    }
+  })
+);
 </script>

@@ -29,10 +29,13 @@ export const onIndexEnter = () =>
     });
   });
 
-export const onIndexLeave = () =>
+export const onIndexLeave = (callback?: () => void) => () =>
   new Promise<boolean>((resolve, reject) => {
     const tl = gsap.timeline({
-      onComplete: () => resolve(true),
+      onComplete: () => {
+        if (callback) callback();
+        resolve(true);
+      },
       onInterrupt: () => reject(true),
     });
     tl.to("#page__index", {
