@@ -173,7 +173,7 @@ function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
 function onStart({ x, y }: Vector2): void {
   // wait for a click on window. if no click, toggle zoom animation on move
 
-  if (!translating.value && !isWindowOpen.value && !dragDezooming) {
+  if (!translating.value && !apiData.isWindowOpen && !dragDezooming) {
     setTimeout(() => {
       if (!dragDezooming && mouseDown) {
         dragDezooming = true;
@@ -207,7 +207,7 @@ function onMove(
     // const deltaY: number = y - lastMousePos.y;
 
     velocity.x = x * (2 - zoomFactor.value);
-    if (!isWindowOpen.value) {
+    if (!apiData.isWindowOpen) {
       velocity.y = y * (2 - zoomFactor.value);
     }
   }
@@ -269,15 +269,6 @@ const showSelectedProjectMediaWindows = (openWindowId: string) => {
   });
 };
 
-const hideAllProjectMediaWindows = () => {
-  apiData.allWindows
-    .filter(({ id }) => id.includes("media"))
-    .forEach((window) => {
-      window.hidden = true;
-      window.selected = false;
-    });
-};
-
 function onOpen(windowId: string) {
   apiData.projectWindows.forEach((window) => {
     const isOpen = window.id === windowId;
@@ -293,16 +284,9 @@ function onOpen(windowId: string) {
 }
 
 function onClose(windowId: string) {
-  hideAllProjectMediaWindows();
+  apiData.hideAllProjectMediaWindows();
   selectWindow(windowId, false, undefined, 0.5);
-  apiData.projectWindows.forEach((window: WindowData) => {
-    window.open = false;
-    window.hidden = false;
-  });
-}
-
-function getWindowById(windowId: number | string) {
-  return apiData.allWindows.find(({ id }) => id === windowId);
+  apiData.showAllProjectWindows()
 }
 
 const selectWindow = (
@@ -327,6 +311,7 @@ const selectWindow = (
 
     
     apiData.selectedId = targetId;
+    setWindowSelection(targetId)
     // default to hiding cursor on click
     mouseData.showCursor = forceShowCursor;
     // emit("update:showCursor", forceShowCursor);
@@ -357,7 +342,7 @@ function translateToTargetPos() {
     };
 
     const needsTranslate =
-      Math.max(Math.abs(dstToTarget.x), Math.abs(dstToTarget.y)) > 0.1;
+      Math.max(Math.abs(dstToTarget.x), Math.abs(dstToTarget.y)) > 1;
 
     if (needsTranslate) {
       velocity.x += dstToTarget.x * 0.005;

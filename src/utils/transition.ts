@@ -10,12 +10,10 @@ export const onIndexEnter = () =>
       "#page__index",
       {
         x: -window.innerWidth,
-        opacity: 0,
         scale: 0.7,
       },
       {
         x: 0,
-        opacity: 1,
         scale: 0.7,
         duration: 0.8,
         ease: Power2.easeOut,
@@ -47,11 +45,9 @@ export const onIndexLeave = (callback?: () => void) => () =>
       "#page__index",
       {
         x: 0,
-        opacity: 1,
       },
       {
         x: -window.innerWidth,
-        opacity: 0,
         duration: 0.8,
         delay: 0.3,
         ease: Power2.easeIn,
@@ -69,12 +65,10 @@ export const onInfoEnter = () =>
       "#page__info",
       {
         x: window.innerWidth,
-        opacity: 0,
         scale: 0.7,
       },
       {
         x: 0,
-        opacity: 1,
         scale: 0.7,
         duration: 0.8,
         ease: Power2.easeOut,
@@ -103,11 +97,9 @@ export const onInfoLeave = () =>
       "#page__info",
       {
         x: 0,
-        opacity: 1,
       },
       {
         x: window.innerWidth,
-        opacity: 0,
         duration: 0.8,
         delay: 0.3,
         ease: Power2.easeIn,

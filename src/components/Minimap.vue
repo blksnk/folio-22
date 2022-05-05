@@ -15,6 +15,7 @@
 import { computed } from "vue";
 import { generateWindowSize } from "@/utils/layout";
 import { Vector2, ScreenDims } from "@/utils/layout.types"
+import { useApiData } from "@/stores/apiData";
 
 interface MinimapItem {
   transform: Vector2;
@@ -27,7 +28,6 @@ interface MinimapItem {
 }
 
 interface MinimapProps {
-  items: MinimapItem[];
   screenSize: ScreenDims;
   onSelect: (id: string | number) => void;
   zoomFactor: { value: number };
@@ -39,6 +39,23 @@ interface MinimapItemProps {
   selected: boolean;
   hidden: boolean;
 }
+
+const apiData = useApiData()
+
+const items = computed<MinimapItem[]>(() =>
+  apiData.allWindows.map(({ transform, thumbnail, selected, id, hidden }) => ({
+    transform: {
+      x: transform.x,
+      y: transform.y,
+    },
+    ratio: thumbnail.large.aspectRatio,
+    selected,
+    height: thumbnail.large.height,
+    width: thumbnail.large.width,
+    hidden,
+    id,
+  }))
+);
 
 const props = defineProps<MinimapProps>();
 
@@ -54,7 +71,7 @@ const renderRatio = computed<Vector2>(() => ({
   y: HEIGHT / props.screenSize.y,
 }));
 
-const itemScales = computed(() => props.items.map(({ ratio }) => {
+const itemScales = computed(() => items.value.map(({ ratio }) => {
   const s = generateWindowSize(ratio, { x: 1, y: 1} )
   return {
     x: s.x - 2,
@@ -64,7 +81,7 @@ const itemScales = computed(() => props.items.map(({ ratio }) => {
 
 
 const minimapItemStyles = computed<MinimapItemProps[]>(() =>
-  props.items
+  items.value
     .map(({ transform, ratio, selected, hidden, ...item }, index) => ({
       x:
         (transform.x * renderRatio.value.x) / 2 +

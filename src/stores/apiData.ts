@@ -98,5 +98,20 @@ export const useApiData = defineStore("apiData", {
     getWindowById(windowId: string | number): WindowData | undefined {
       return this.allWindows.find(({ id }) => id === windowId);
     },
+    hideAllProjectMediaWindows() {
+      this.mediaWindows
+        .map(({ mediaWindows }) => mediaWindows)
+        .flat(1)
+        .forEach((window) => {
+          window.hidden = true;
+          window.selected = false;
+        });
+    },
+    showAllProjectWindows() {
+      this.projectWindows.forEach((window) => {
+        window.hidden = false;
+        window.open = false;
+      });
+    },
   },
 });

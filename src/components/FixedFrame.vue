@@ -2,12 +2,28 @@
   <div class="overlay__frame">
     <div
       :class="{
-        show: displayTitle,
+        show,
         overlay__frame__title: true,
         scroll,
       }"
     >
-      <h1><span @click="onClick()" class="folder__name">Index // </span>{{ title }}</h1>
+      <div class="overlay__frame__title__left">
+        <h1>
+          <span @click="onClick()" class="folder__name hover_underline"
+            >Index // </span
+          >{{ title }}
+        </h1>
+        <div v-if="apiData.openWindow?.tags" class="tags">
+          <div
+            v-for="tag in apiData.openWindow?.tags"
+            :key="tag.uid"
+            class="tag"
+          >
+            {{ tag.title }}
+          </div>
+        </div>
+      </div>
+
       <WindowButton
         enabled
         active
@@ -21,14 +37,21 @@
 </template>
 
 <script setup lang="ts">
-import { defineEmits } from "vue";
+import { computed, defineEmits } from "vue";
 import WindowButton from "@/components/WindowButton.vue";
+import { useApiData } from "@/stores/apiData";
+import { useRoute } from "vue-router";
+
+const apiData = useApiData();
+const route = useRoute()
 
 interface FixedFrameProps {
   displayTitle?: boolean;
   title?: string;
   scroll?: boolean;
 }
+
+const show = computed(() => route.path === '/info' ? false : apiData.isWindowOpen  )
 
 defineProps<FixedFrameProps>();
 
@@ -50,7 +73,7 @@ const onClick = () => emit("close");
   -webkit-overflow: hidden
   clip-path: border-box
   // transform: scale(0)
-  opacity: 0
+  transform-origin: center center
   transition: opacity .6s linear
 
   &.scroll
@@ -83,6 +106,26 @@ const onClick = () => emit("close");
       .folder__name
         @include f-project-title__light
         color: $c-grey-3
+
+  .overlay__frame__title__left
+    @include fl-start
+
+    .tags
+      @include fl-start
+      transform-origin: top left
+      flex-direction: row
+      gap: 12px
+      width: max-content
+      transition: opacity .3s linear 0s
+
+    .tag
+      @include f-project-title__light
+      border: 1px solid $c-grey-1
+      padding: 3px 6px
+      color: $c-grey-1
+      border-radius: 24px
+      transition: border-color .3s linear .3s, color .3s linear .6s
+      // background-color: rgba(12, 12, 12, .8)
 
   @media screen and (max-width: 600px)
     top: 10px
