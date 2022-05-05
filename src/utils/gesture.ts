@@ -7,8 +7,6 @@ type onTouchFunc = (touches: Vector2[]) => void;
 
 type VectorArgFunc = (vec: Vector2, delta?: Vector2) => void;
 
-type DefaultVector2 = { x: 0; y: 0 };
-
 type onMoveFn = (vec: Vector2, delta: Vector2, fromWheel?: boolean) => void;
 
 type EventListener = (e: Event) => void;
@@ -114,7 +112,6 @@ class GestureHandler {
   }
 
   destroy() {
-    console.warn("remove gesture events");
     this.target.removeEventListener("mousedown", this._onMouseDown_bound);
     this.target.removeEventListener("mouseup", this._onMouseUp_bound);
     this.target.removeEventListener("mousemove", this._onMouseMove_bound);

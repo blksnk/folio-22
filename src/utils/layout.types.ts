@@ -1,4 +1,4 @@
-import { Project, ImageFormats, uid, ProjectTag } from "@/utils/api.types";
+import { ImageFormats, uid, ProjectTag } from "@/utils/api.types";
 
 export interface Vector2 {
   [key: string]: number | Vector2;

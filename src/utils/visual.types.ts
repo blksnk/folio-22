@@ -4,5 +4,3 @@ export interface RectProps {
   width: number;
   height: number;
 }
-
-export interface ImageProps {}

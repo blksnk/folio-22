@@ -1,4 +1,3 @@
-import { Store } from "pinia";
 import qs from "qs";
 import {
   Project,
@@ -138,12 +137,6 @@ export const loadApi = async () => {
   try {
     const projects = await fetchProjects();
     const formattedProjects = formatProjects(projects.data);
-
-    // if (storeReference) {
-    //   storeReference.$patch({
-    //     projects: formattedProjects,
-    //   });
-    // }
 
     return { projects: formattedProjects };
   } catch (e) {

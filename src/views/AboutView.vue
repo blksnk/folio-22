@@ -1,6 +1,6 @@
 <template>
   <fixed-frame id="page__info" class="dotted">
-      <clipped-image/>
+    <clipped-image/>
     
     <div id="about__content" :style="contentStyle">
       <h1>Jean-Nicolas Veigel</h1>

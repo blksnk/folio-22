@@ -2,8 +2,6 @@
   <FixedFrame
     class="dotted"
     @close="() => onClose(apiData.openWindow?.id)"
-    :displayTitle="isWindowOpen"
-    :title="openWindow?.title"
     id="page__index"
   >
     <Window
@@ -109,26 +107,6 @@ const isWindowOpen = computed<boolean>(() =>
 const openWindow = computed<WindowData | undefined>(() =>
   apiData.projectWindows.find((el: WindowData) => el.open)
 );
-
-// const selectedWindow = computed<WindowData | undefined>(() =>
-//   apiData.allWindows.find((el) => el.id === selectedId.id)
-// );
-
-// takes zoom into account
-const effectiveBoundaries = computed(() => {
-  // const zoomComp = 3 - zoomFactor.value;
-  // return {
-  //   min: {
-  //     x: -initialBoundaries.min.x * zoomComp,
-  //     y: -initialBoundaries.min.y * zoomComp,
-  //   },
-  //   max: {
-  //     x: -initialBoundaries.max.x * zoomComp,
-  //     y: -initialBoundaries.max.y * zoomComp,
-  //   },
-  // };
-  return initialBoundaries;
-});
 
 function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   return Math.max(
@@ -283,9 +261,11 @@ function onOpen(windowId: string) {
   showSelectedProjectMediaWindows(windowId);
 }
 
-function onClose(windowId: string) {
+function onClose(windowId?: string) {
   apiData.hideAllProjectMediaWindows();
-  selectWindow(windowId, false, undefined, 0.5);
+  if(windowId) {
+    selectWindow(windowId, false, undefined, 0.5);
+  }
   apiData.showAllProjectWindows()
 }
 

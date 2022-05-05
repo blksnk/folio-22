@@ -1,5 +1,5 @@
 import { clamp } from "@/utils/math";
-import { ImageFormat, Project, ProjectMedia } from "@/utils/api.types";
+import { Project, ProjectMedia } from "@/utils/api.types";
 import {
   Vector2,
   Transform,

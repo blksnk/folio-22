@@ -4,14 +4,13 @@
       :class="{
         show,
         overlay__frame__title: true,
-        scroll,
       }"
     >
       <div class="overlay__frame__title__left">
         <h1>
           <span @click="onClick()" class="folder__name hover_underline"
             >Index // </span
-          >{{ title }}
+          >{{ apiData.openWindow?.title }}
         </h1>
         <div v-if="apiData.openWindow?.tags" class="tags">
           <div
@@ -47,8 +46,6 @@ const route = useRoute()
 
 interface FixedFrameProps {
   displayTitle?: boolean;
-  title?: string;
-  scroll?: boolean;
 }
 
 const show = computed(() => route.path === '/info' ? false : apiData.isWindowOpen  )
@@ -75,9 +72,6 @@ const onClick = () => emit("close");
   // transform: scale(0)
   transform-origin: center center
   transition: opacity .6s linear
-
-  &.scroll
-    overflow-y: scroll
 
   .overlay__frame__title
     @include fl-sb

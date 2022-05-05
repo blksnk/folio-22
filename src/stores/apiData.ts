@@ -5,8 +5,7 @@ import {
   createProjectWindows,
 } from "@/utils/layout";
 import { WindowData, ProjectMediaWindows, Vector2 } from "@/utils/layout.types";
-import { preloadImage, preloadImg } from "@/utils/visual";
-import { catchClause } from "@babel/types";
+import { preloadImg } from "@/utils/visual";
 import { defineStore } from "pinia";
 
 type Callback = (arg: any) => void;

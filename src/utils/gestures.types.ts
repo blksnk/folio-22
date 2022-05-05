@@ -1,5 +1,4 @@
-import { Ref } from "vue";
-import { ScreenDims, Vector2 } from "./layout.types";
+import { Vector2 } from "./layout.types";
 
 export interface GestureProps {
   onStartVector2: Vector2;
