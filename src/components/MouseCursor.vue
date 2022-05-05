@@ -60,7 +60,7 @@ const containerStyle = computed(
   #cursor__icon
     color: $c-grey-6
     opacity: 0
-    font-size: 40px
+    font-size: 36px
     --ionicon-stroke-weight: 1px
 
   &.active

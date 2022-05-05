@@ -198,7 +198,6 @@ class GestureHandler {
     // this.prevent(e);
     const touchEvent = e as TouchEvent;
     this.oldTouches = this.touches;
-    console.log(touchEvent);
     this.touches = [...touchEvent.changedTouches];
     this.touchPositions = this.getTouchPositions(this.touches);
     this.multitouch = this.touches.length > 1;
@@ -253,7 +252,6 @@ class GestureHandler {
     // change zoom
     e.preventDefault();
     if (this.isTrackpad) {
-      // console.log(E.ctrlKey);
       if (E.ctrlKey && this.onWheel) {
         this.onWheel(deltaVec);
       } else if (this.onMove) {

@@ -17,19 +17,6 @@ const routeElementsMap: RouteMap = {
     title: "Information",
   },
 };
-
-const navigate = (to: string) => (e: Event) => {
-  if(e) {
-    e.preventDefault();
-  }
-  const activeRoutePath = route.path;
-  console.log(route)
-  if (activeRoutePath !== to) {
-    const targetRoute = routeElementsMap[to];
-    const activeRoute = routeElementsMap[activeRoutePath];
-    console.log(targetRoute, activeRoute);
-  }
-};
 </script>
 
 <template>

@@ -286,16 +286,18 @@ const selectWindow = (
     (apiData.selectedId !== targetId || apiData.openWindow?.id === targetId) &&
     !window.hidden
   ) {
-    console.log("selected", window.title);
-    console.log("\n\n");
-
-    
     apiData.selectedId = targetId;
     setWindowSelection(targetId)
-    // default to hiding cursor on click
-    mouseData.showCursor = forceShowCursor;
-    // emit("update:showCursor", forceShowCursor);
-    mouseData;
+    if (!isMediaWindow(String(targetId))) {
+      mouseData.showCursor = true
+      if(!window.open) {
+        mouseData.cursorIcon = "folder-open-outline"
+      }
+    } else {
+      mouseData.showCursor = false
+    }
+    
+    
     const zoom =
       zt ||
       computeZoomTarget(
@@ -307,7 +309,6 @@ const selectWindow = (
       );
     zoomTarget = zoom;
     preTranslateZoomTarget = zoom;
-    // setWindowSelection(targetId);
     translating.value = true;
   }
 };
@@ -351,21 +352,23 @@ function applyZoom() {
 }
 
 function onMouseOver(windowId: string) {
+  const window = apiData.getWindowById(windowId)
   if (
-    apiData.selectedId !== windowId &&
-    !apiData.getWindowById(windowId)?.hidden
+    // apiData.selectedId !== windowId &&
+    window &&
+    !window.hidden
   ) {
     mouseData.showCursor = true;
-    mouseData.cursorIcon = "eye-outline";
+    mouseData.cursorIcon = isMediaWindow(windowId) || window.open || apiData.selectedId !== windowId ? "eye-outline" : "folder-open-outline";
     // emit("update:showCursor", true);
     // emit("update:cursorIcon", "eye-outline");
 
-    if (isMediaWindow(windowId)) {
-      mouseData.cursorText = "View";
-      mouseData.cursorIcon = undefined;
-      // emit("update:cursorText", "View");
-      // emit("update:cursorIcon", undefined);
-    }
+    // if (isMediaWindow(windowId)) {
+    //   mouseData.cursorText = "View";
+    //   mouseData.cursorIcon = undefined;
+    //   // emit("update:cursorText", "View");
+    //   // emit("update:cursorIcon", undefined);
+    // }
   }
 }
 
@@ -408,6 +411,7 @@ const minimapItems = computed(() =>
 //   }
 // );
 
+// TODO: fix translateToTargetPos on new screenSize
 const onResize = debounce(() => {
   const { x, y, center, ratio } = getScreenDims();
   // isMobile.value = x < 600;
@@ -417,7 +421,7 @@ const onResize = debounce(() => {
   screenSize.y = y;
   screenSize.center = center;
   screenSize.ratio = ratio;
-  setInitalBoundaries();
+  // setInitalBoundaries();
 }, 500);
 
 function setInitalBoundaries() {
@@ -449,10 +453,6 @@ onMounted(async () => {
   window.addEventListener("resize", onResize);
 });
 
-watchEffect(() => {
-  console.log(apiData.selectedWindow)
-})
-
 onBeforeUnmount(() => {
   // cancelAnimationFrame(frameId);
   window.removeEventListener("resize", onResize);
@@ -469,6 +469,7 @@ onBeforeRouteLeave(
     if (gestures) {
       gestures.destroy();
     }
+    mouseData.showCursor = false
   })
 );
 </script>
