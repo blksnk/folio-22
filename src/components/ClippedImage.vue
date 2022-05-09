@@ -35,9 +35,7 @@ const imgSize = ref<Vector2>({ x: 100, y: 100 })
 
 const createImageSize = ({ width, height } : ImageFormat): Vector2 => {
   const x = apiData.isMobile ? window.innerWidth - 100 : (window.innerWidth - 124) * 0.4
-  console.log(x)
   const ratio = width / height;
-  console.log(ratio)
   const y = x / ratio
   return {
     x, y

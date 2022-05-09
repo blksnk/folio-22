@@ -129,10 +129,8 @@ onBeforeRouteUpdate(onInfoEnter)
 const setScrollMax = () => {
   const content = document.getElementById('about__content');
   if (content) {
-    console.log(content.offsetHeight)
     const scrollMaxY = content.offsetHeight - window.innerHeight / 2 - 40
     gestureData.setScrollMax({ y: scrollMaxY})
-    // gestureData.scrollMax.
   }
 }
 

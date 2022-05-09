@@ -104,13 +104,6 @@ const onResize = () => {
   };
 };
 
-const onMouseDown = () => {
-  if (mouseData.isTouch) {
-    console.log('runs')
-    // mouseData.isTouch = false;
-  }
-};
-
 // main animation loop. runs every frame.
 
 const animateLoop = () => {

@@ -133,16 +133,13 @@ export const isInBoundaries = (
   translatePosition: Vector2,
   bounds: Boundary
 ): boolean => {
-  console.log(translatePosition, bounds);
   return true;
 };
 
 export const keepInBoundaries = (
   translatePosition: Vector2,
   bounds: Boundary
-): void => {
-  console.log(translatePosition, bounds);
-};
+): void => {};
 
 const generateWindowPosition = (
   currentWindowSize: Vector2,
@@ -259,7 +256,6 @@ const generateMediaWindowPosition = (
   margin: number,
   prevMediaSize: Vector2
 ): Boundary => {
-  console.log(prevMediaSize.x);
   const left = offsetX + margin + (currentMediaSize.x - prevMediaSize.x) / 2;
   // const top = rootWindowPos.y + (rootWindowSize.y / 2 - currentMediaSize.y / 2);
   const alignedToBottom =
