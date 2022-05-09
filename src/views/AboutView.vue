@@ -17,22 +17,22 @@
         learning and teaching skills along the way.
       </p>
 
-      <h3 class="about__heading">Work experience</h3>
+      <h3 class="about__heading">Work <em>experience</em></h3>
       <div id="jobs" class="table">
-        <div class="table__header">
+        <div class="table__header reversed">
+          <span>Year</span>
           <span>Client</span>
           <span>Role</span>
-          <span>Year</span>
         </div>
-        <a class="table__row hover_underline__parent" v-for="job in jobs" target="_blank" :title="job.client.name" :href="job.client.website">
+        <a class="table__row hover_underline__parent reversed" v-for="job in jobs" target="_blank" :title="job.client.name" :href="job.client.website">
+          <span>{{job.year}}</span>
           <div>
             <span class="hover_underline">{{job.client.name}}</span>
           </div>
           <span>{{job.role}}</span>
-          <span>{{job.year}}</span>
         </a>
       </div>
-      <h3 class="about__heading">Spoken languages</h3>
+      <h3 class="about__heading">Spoken <em>languages</em></h3>
       <div class="table">
         <div class="table__header reversed">
           <span>Flag</span>
@@ -65,6 +65,39 @@
           <span>A1</span>
         </div>
       </div>
+      <h3 class="about__heading">Education</h3>
+      <div class="table">
+        <div class="table__header reversed">
+          <span>Year</span>
+          <span>Diploma</span>
+          <span>School</span>
+        </div>
+        <div class="table__row reversed">
+          <span>2023</span>
+          <span>Art Direction</span>
+          <span>Sup de création, Paris</span>
+        </div>
+        <div class="table__row reversed">
+          <span>2018</span>
+          <span>Web Development Bootcamp</span>
+          <span>IronHack, Paris</span>
+        </div>
+        <div class="table__row reversed">
+          <span>2018</span>
+          <span>DUT Business & Marketing</span>
+          <span>IUT Robert Schuman, Strasbourg</span>
+        </div>
+        <div class="table__row reversed">
+          <span>2017</span>
+          <span>Baccalauréat ES</span>
+          <span>Gymnase Jean Sturm, Strasbourg</span>
+        </div>
+      </div>
+      <h2 class="about__heading">Drop me a message !</h2>
+      <div id="about__contact">
+        <a href="mailto:hello@genmetsu.art" target="_blank" class="hover__underline">hello@genmetsu.art</a>
+        <a href="tel:+33658238758" class="hover__underline">(+33) 6 58 23 87 58</a>
+      </div>
     </div>
   </fixed-frame>
 </template>
@@ -93,9 +126,21 @@ onBeforeRouteLeave(
 );
 onBeforeRouteUpdate(onInfoEnter)
 
+const setScrollMax = () => {
+  const content = document.getElementById('about__content');
+  if (content) {
+    console.log(content.offsetHeight)
+    const scrollMaxY = content.offsetHeight - window.innerHeight / 2 - 40
+    gestureData.setScrollMax({ y: scrollMaxY})
+    // gestureData.scrollMax.
+  }
+}
+
 onMounted(() => {
   onInfoEnter()
+  // move to top on mount
   gestureData.targetScrollPos = {x: 0, y: 0}
+  setScrollMax()
 }
 );
 
@@ -112,14 +157,15 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
 
 #about__content
   position: relative
+  overflow: visible
   min-height: 100vh
   padding: 42px
   display: grid
   grid-template-columns: repeat(10, 1fr)
   grid-auto-rows: min-content
   grid-gap: 12px
-  height: 100%
-  max-height: 100%
+  // height: 100%
+  // max-height: 100%
   z-index: 2
 
   @media screen and (max-width: 600px)
@@ -132,6 +178,8 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
     grid-column: 1 / -1
     grid-row: auto
     mix-blend-mode: difference
+    z-index: 3
+    posititon: relative
 
     &.tab
       grid-column: 3 / -1
@@ -165,7 +213,7 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
     grid-column: 3 / span 4
     
     @media screen and (max-width: 600px)
-        grid-column: 2 / -1
+      grid-column: 1 / -1
 
     span
       @include f-nav-link
@@ -175,7 +223,7 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
       color: $c-grey-4
       grid-template-columns: 2fr 2fr 1fr
       margin-top: 12px
-      align-items: center
+      align-items: baseline
 
       &.reversed
         grid-template-columns: 1fr 2fr 2fr
@@ -191,6 +239,27 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
       &:hover
         color: $c-white
 
+      .flag
+        align-self: center
 
+  #about__contact
+    grid-column: 3 / span 6
+    display: grid
+    grid-template-columns: repeat(2, 1fr)
+    grid-column-gap: 12px
+    margin-top: 12px
+
+    a
+      @include f-nav-link
+      text-transform: uppercase
+      color: $c-grey-6
+      
+
+@media screen and (max-width: 600px)
+  h1
+    margin-top: 30vh
+
+  h2:last-of-type
+    margin-bottom: 64
       
 </style>

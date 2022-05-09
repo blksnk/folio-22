@@ -3,21 +3,16 @@ import { ImageResponse_Raw, ImageFormats } from "./api.types";
 import { RectProps } from "./visual.types";
 const API_URL = import.meta.env.VITE_API_URL;
 
-const createImage = () => {
-  const i = document.createElement("img");
-  return i;
-};
-
 const createRandomRect = (
   imgWidth: number,
   imgHeight: number,
   maxSize = 600,
-  minSize = 150
+  minSize = 100
 ) => {
   const ratio = imgWidth / imgHeight;
   const width = Math.max(
     minSize,
-    Math.round(Math.random() * (maxSize * ratio) * 1.5)
+    Math.round(Math.min(imgWidth, Math.random() * (maxSize * ratio) * 1.5))
   );
   const height = Math.max(
     minSize,

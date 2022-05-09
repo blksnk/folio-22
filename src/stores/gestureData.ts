@@ -5,6 +5,7 @@ export interface GestureProps {
   [k: string]: any;
   scrollPos: Vector2;
   targetScrollPos: Vector2;
+  scrollMax: Vector2;
 }
 
 export const useGestureData = defineStore("gestureData", {
@@ -28,11 +29,23 @@ export const useGestureData = defineStore("gestureData", {
       };
     },
     setTargetScrollPos(deltas: Vector2) {
-      this.targetScrollPos.x = Math.max(deltas.x + this.targetScrollPos.x, 0);
-      this.targetScrollPos.y = Math.max(deltas.y + this.targetScrollPos.y, 0);
+      this.targetScrollPos.x = Math.max(
+        Math.min(this.scrollMax.x, deltas.x + this.targetScrollPos.x),
+        0
+      );
+      this.targetScrollPos.y = Math.max(
+        Math.min(this.scrollMax.y, deltas.y + this.targetScrollPos.y),
+        0
+      );
     },
     updateStore(key: string, v: unknown) {
       this[key] = v;
+    },
+    setScrollMax(update: { x?: number; y?: number }) {
+      this.scrollMax = {
+        ...this.scrollMax,
+        ...update,
+      };
     },
   },
 });

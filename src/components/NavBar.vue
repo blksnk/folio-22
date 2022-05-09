@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { RouterLink, useRoute } from "vue-router";
+import { RouterLink } from "vue-router";
+import AppLogo from "./icons/AppLogo.vue";
 
-const route = useRoute();
 
 interface RouteMap {
   [path: string]: { element: () => HTMLElement | null; title: string };
 }
 
 const routeElementsMap: RouteMap = {
-  "/": {
+  "/index": {
     element: () => document.getElementById("page__index"),
     title: "Index,\xa0",
   },
@@ -20,31 +20,58 @@ const routeElementsMap: RouteMap = {
 </script>
 
 <template>
+  
   <nav>
-    <RouterLink
+    <div id="nav__left">
+      <AppLogo/>
+      <span id="nav__title">Jean-Nicolas Veigel</span>
+    </div>
+    <div id="nav__links">
+      <RouterLink
       v-for="[path, r] of Object.entries(routeElementsMap)"
       class="link hover_underline"
       :to="path"
       :key="path"
       >{{ r.title }}</RouterLink
     >
-    <!-- <a class="link" href="/work">Work,&nbsp;</a> -->
+    </div>
   </nav>
 </template>
 
 <style lang="sass">
 
 nav
-  @include fl-center
-  padding-top: 22px
-  align-items: baseline
+  @include fl-sb
+  // padding-top: 22px
+  align-items: center
   height: 70px
   position: fixed
   right: 32px
+  left: 32px
   bottom: 0px
 
   @media screen and (max-width: 600px)
     right: 22px
+    left: 22px
+
+  #nav__links 
+    @include fl-center
+    align-items: baseline
+    padding-top: 22px
+    height: 100%
+
+  #nav__left
+    @include fl-center
+    // padding-top: 22px
+    height: 100%
+    gap: 12px
+
+    #nav__title
+      color: $c-grey-6
+      @include f-nav-link
+      font-family: 'Canela'
+      font-style: italic
+
 
 .link
   color: $c-grey-6

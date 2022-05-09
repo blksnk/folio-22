@@ -18,8 +18,7 @@
       :hidden="window.hidden"
       :screenSize="screenSize"
       :tags="window?.tags"
-      @mouseup="() => selectWindow(window.id, false)"
-      @touchend="() => selectWindow(window.id, false)"
+      @click="() => selectWindow(window.id, false)"
       @mouseover="onMouseOver(window.id)"
       @mouseleave="onMouseLeave()"
       @buttonOver="onMouseLeave()"
@@ -45,7 +44,14 @@ export const getScreenDims = () => ({
 </script>
 
 <script setup lang="ts">
-import { reactive, onBeforeUnmount, onMounted, computed, ref, watchEffect } from "vue";
+import {
+  reactive,
+  onBeforeUnmount,
+  onMounted,
+  computed,
+  ref,
+  watchEffect,
+} from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 import { debounce } from "lodash";
 
@@ -67,6 +73,7 @@ import {
   Boundary,
   Vector2,
 } from "@/utils/layout.types";
+import { ArrowDirection } from "@/utils/gestures.types";
 import { onIndexEnter, onIndexLeave } from "@/utils/transition";
 import { clamp, getScaleCoef, largestAbsolute, isBetween } from "@/utils/math";
 import { useApiData } from "@/stores/apiData";
@@ -100,14 +107,6 @@ const initialBoundaries = reactive<Boundary>({
   right: 10000,
 });
 
-const isWindowOpen = computed<boolean>(() =>
-  apiData.projectWindows.some((el: WindowData) => el.open)
-);
-
-const openWindow = computed<WindowData | undefined>(() =>
-  apiData.projectWindows.find((el: WindowData) => el.open)
-);
-
 function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   return Math.max(
     Math.abs(screenSize.center[vectorName] - value) / screenSize[vectorName] +
@@ -130,8 +129,8 @@ function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
     const scale = getScaleCoef(offsetFromCenter);
     // select window if centered
     if (
-      isBetween(offsetFromCenter.x, 0.5, 0.7) &&
-      isBetween(offsetFromCenter.y, 0.5, 0.7) &&
+      isBetween(offsetFromCenter.x, 0.5, 0.6) &&
+      isBetween(offsetFromCenter.y, 0.5, 0.6) &&
       !translating.value &&
       !isMediaWindow(window.id)
       // apiData.selectedId !== window.id
@@ -228,7 +227,6 @@ function decreaseVelocity(dragFactor = 0.0) {
 }
 
 function setWindowSelection(selectId: number | string) {
-  // apiData.selectedId = selectId
   apiData.allWindows.forEach((window) => {
     window.selected = window.id === selectId;
   });
@@ -263,10 +261,10 @@ function onOpen(windowId: string) {
 
 function onClose(windowId?: string) {
   apiData.hideAllProjectMediaWindows();
-  if(windowId) {
+  if (windowId) {
     selectWindow(windowId, false, undefined, 0.5);
   }
-  apiData.showAllProjectWindows()
+  apiData.showAllProjectWindows();
 }
 
 const selectWindow = (
@@ -286,18 +284,18 @@ const selectWindow = (
     (apiData.selectedId !== targetId || apiData.openWindow?.id === targetId) &&
     !window.hidden
   ) {
+    translating.value = true;
     apiData.selectedId = targetId;
-    setWindowSelection(targetId)
+    setWindowSelection(targetId);
     if (!isMediaWindow(String(targetId))) {
-      mouseData.showCursor = true
-      if(!window.open) {
-        mouseData.cursorIcon = "folder-open-outline"
+      mouseData.showCursor = true;
+      if (!window.open) {
+        mouseData.cursorIcon = "folder-open-outline";
       }
     } else {
-      mouseData.showCursor = false
+      mouseData.showCursor = false;
     }
-    
-    
+
     const zoom =
       zt ||
       computeZoomTarget(
@@ -309,17 +307,15 @@ const selectWindow = (
       );
     zoomTarget = zoom;
     preTranslateZoomTarget = zoom;
-    translating.value = true;
   }
 };
 
 function translateToTargetPos() {
-  // const selected = apiData.getWindowById(apiData.selectedId);
   if (apiData.selectedWindow && translating.value) {
     const { x, y } = apiData.selectedWindow.transform;
     const dstToTarget = {
       x: screenSize.center.x - x,
-      y: screenSize.center.y - y,
+      y: screenSize.center.y + 24 - y,
     };
 
     const needsTranslate =
@@ -330,7 +326,7 @@ function translateToTargetPos() {
       velocity.y += (dstToTarget.y * 0.005) / screenSize.ratio;
     } else if (translating.value) {
       translating.value = false;
-      setWindowSelection(apiData.selectedId)
+      setWindowSelection(apiData.selectedId);
     }
   }
 }
@@ -352,29 +348,22 @@ function applyZoom() {
 }
 
 function onMouseOver(windowId: string) {
-  const window = apiData.getWindowById(windowId)
+  const window = apiData.getWindowById(windowId);
   if (
     // apiData.selectedId !== windowId &&
     window &&
     !window.hidden
   ) {
     mouseData.showCursor = true;
-    mouseData.cursorIcon = isMediaWindow(windowId) || window.open || apiData.selectedId !== windowId ? "eye-outline" : "folder-open-outline";
-    // emit("update:showCursor", true);
-    // emit("update:cursorIcon", "eye-outline");
-
-    // if (isMediaWindow(windowId)) {
-    //   mouseData.cursorText = "View";
-    //   mouseData.cursorIcon = undefined;
-    //   // emit("update:cursorText", "View");
-    //   // emit("update:cursorIcon", undefined);
-    // }
+    mouseData.cursorIcon =
+      isMediaWindow(windowId) || window.open || apiData.selectedId !== windowId
+        ? "eye-outline"
+        : "folder-open-outline";
   }
 }
 
 function onMouseLeave() {
   mouseData.showCursor = false;
-  // emit("update:showCursor", false);
 }
 
 function animate(): void {
@@ -382,7 +371,6 @@ function animate(): void {
   applyZoom();
   translateToTargetPos();
   tranformWindowsOnDrag(velocity, apiData.allWindows);
-  // translateCursor();
   // keepInBounds();
   // keepInBoundaries(translatePosition, effectiveBoundaries.value);
   decreaseVelocity(translating ? dragFactor : 0);
@@ -403,20 +391,9 @@ const minimapItems = computed(() =>
   }))
 );
 
-// watch(
-//   () => props.isMobile,
-//   (m) => {
-//     baseWindowSize.x = m ? 250 : 500;
-//     baseWindowSize.y = m ? 250 : 500;
-//   }
-// );
-
 // TODO: fix translateToTargetPos on new screenSize
 const onResize = debounce(() => {
   const { x, y, center, ratio } = getScreenDims();
-  // isMobile.value = x < 600;
-  // baseWindowSize.x = isMobile.value ? 250 : 500;
-  // baseWindowSize.y = isMobile.value ? 250 : 500;
   screenSize.x = x;
   screenSize.y = y;
   screenSize.center = center;
@@ -435,6 +412,78 @@ function setInitalBoundaries() {
   initialBoundaries.right = bounds.right;
 }
 
+const selectWithKeyboard = (direction: string | ArrowDirection) => {
+  // get selected window index
+  if (apiData.selectedWindow) {
+    let newIndex = 0, selectedIndex = 0, selectedId = "";
+    if (apiData.isWindowOpen && apiData?.openWindow) {
+      const mediaWins = apiData.mediaWindows.find(({ projectUid }) => projectUid === apiData.openWindow?.id)
+      const windows = [ apiData.openWindow, ...(mediaWins?.mediaWindows || []) ]
+      selectedIndex = windows.indexOf(apiData.selectedWindow)
+      console.log(selectedIndex)
+      switch (direction) {
+        case ArrowDirection.ArrowLeft:
+          if (selectedIndex > 0) {
+            newIndex = selectedIndex - 1;
+          }
+          break;
+        case ArrowDirection.ArrowRight:
+          if (selectedIndex <= windows.length - 1) {
+            newIndex = selectedIndex + 1;
+          }
+          break;
+        default:
+          newIndex = selectedIndex;
+          console.log("direction not supported");
+      }
+      selectedId = windows[newIndex].id
+    } else {
+      selectedIndex = apiData.projectWindows.indexOf(
+        apiData.selectedWindow
+      );
+      const isTop = selectedIndex % 2 === 0;
+      switch (direction) {
+        case ArrowDirection.ArrowUp:
+          if (!isTop) {
+            newIndex = selectedIndex - 1;
+          }
+          break;
+        case ArrowDirection.ArrowDown:
+          if (isTop) {
+            newIndex = selectedIndex + 1;
+          }
+          break;
+        case ArrowDirection.ArrowLeft:
+          if (selectedIndex >= 2) {
+            newIndex = selectedIndex - 2;
+          }
+          break;
+        case ArrowDirection.ArrowRight:
+          if (selectedIndex <= apiData.projectWindows.length - 3) {
+            newIndex = selectedIndex + 2;
+          }
+          break;
+        default:
+          newIndex = selectedIndex;
+          console.log("direction not supported");
+      }
+      selectedId = apiData.projectWindows[newIndex].id;
+    }
+    console.log(newIndex);
+    if (newIndex !== selectedIndex) {
+      selectWindow(selectedId);
+    }
+  }
+};
+
+const onKeyDown = (e: KeyboardEvent) => {};
+
+const onKeyUp = (e: KeyboardEvent) => {
+  const { key } = e;
+  console.log(key);
+  selectWithKeyboard(key);
+};
+
 onMounted(async () => {
   setInitalBoundaries();
   onIndexEnter();
@@ -451,11 +500,15 @@ onMounted(async () => {
   });
 
   window.addEventListener("resize", onResize);
+  window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("keyup", onKeyUp);
 });
 
 onBeforeUnmount(() => {
   // cancelAnimationFrame(frameId);
   window.removeEventListener("resize", onResize);
+  window.removeEventListener("keydown", onKeyDown);
+  window.removeEventListener("keyup", onKeyUp);
   translating.value = false;
   if (gestures) {
     gestures.destroy();
@@ -469,7 +522,7 @@ onBeforeRouteLeave(
     if (gestures) {
       gestures.destroy();
     }
-    mouseData.showCursor = false
+    mouseData.showCursor = false;
   })
 );
 </script>

@@ -160,12 +160,18 @@ const generateWindowPosition = (
   };
 
   const isTopWindow = index % 2 === 0;
-  const ratio = prevWindowPos.width / prevWindowPos.height;
 
-  const top = isTopWindow ? 0 : prevWindowPos.bottom + margin / ratio;
+  const randomOffset = generateRandomOffset();
+  const top = isTopWindow
+    ? randomOffset
+    : prevWindowPos.bottom +
+      margin +
+      (currentWindowSize.y - prevWindowPos.height) / 2;
   const bottom = top + currentWindowSize.y;
   const left = isTopWindow
-    ? prevWindowPos.right + margin
+    ? prevWindowPos.right +
+      margin +
+      (currentWindowSize.x - prevWindowPos.width) / 2
     : prevWindowPos.left +
       Math.max(currentWindowSize.x - prevWindowPos.width, 0) / 2;
   const right = left + currentWindowSize.x;
@@ -199,13 +205,13 @@ export const generateWindowPositions = (
   });
 
   // apply random offset every column
-  for (let i = 2; i < windowPositions.length; i += 2) {
-    const randomOffset = generateRandomOffset();
-    windowPositions[i].top += randomOffset;
-    if (windowPositions[i + 1]) {
-      windowPositions[i + 1].top += randomOffset;
-    }
-  }
+  // for (let i = 2; i < windowPositions.length; i += 2) {
+  //   const randomOffset = generateRandomOffset();
+  //   windowPositions[i].top += randomOffset;
+  //   if (windowPositions[i + 1]) {
+  //     windowPositions[i + 1].top += randomOffset;
+  //   }
+  // }
 
   return windowPositions;
 };

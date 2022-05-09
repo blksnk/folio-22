@@ -27,7 +27,7 @@
         <div class="window__info">
           <h3>{{ props.title }}</h3>
 
-          <div v-if="tags" class="window__tags" :class="{ hidden }">
+          <div v-if="tags && !apiData.isMobile" class="window__tags" :class="{ hidden }">
             <div v-for="tag in tags" :key="tag.uid" class="window__tag">
               {{ tag.title }}
             </div>

@@ -37,9 +37,10 @@
 
 <style lang="sass">
 #logo
-  position: fixed
-  bottom: 20px
-  left: 32px
+  // position: fixed
+  // margin-bottom: 20px
+  // bottom: 20px
+  // left: 32px
   height: 30px
   width: 212px
 

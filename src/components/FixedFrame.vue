@@ -1,5 +1,5 @@
 <template>
-  <div class="overlay__frame">
+  <main class="overlay__frame">
     <div
       :class="{
         show,
@@ -32,7 +32,7 @@
       />
     </div>
     <slot></slot>
-  </div>
+  </main>
 </template>
 
 <script setup lang="ts">

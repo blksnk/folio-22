@@ -7,6 +7,7 @@
       :style="item.style"
       :class="{ active: item.selected, hidden: item.hidden }"
       @click="onSelect(item.id)"
+      @mouseover="onMouseOver"
     ></div>
   </div>
 </template>
@@ -16,6 +17,7 @@ import { computed } from "vue";
 import { generateWindowSize } from "@/utils/layout";
 import { Vector2, ScreenDims } from "@/utils/layout.types"
 import { useApiData } from "@/stores/apiData";
+import { useMouseData } from '@/stores/mouseData'
 
 interface MinimapItem {
   transform: Vector2;
@@ -39,6 +41,8 @@ interface MinimapItemProps {
   selected: boolean;
   hidden: boolean;
 }
+
+const mouseData = useMouseData()
 
 const apiData = useApiData()
 
@@ -106,6 +110,10 @@ const minimapItemStyles = computed<MinimapItemProps[]>(() =>
 const minimapStyle = computed(
   () => `height: ${HEIGHT}px; width: ${WIDTH.value}px;`
 );
+
+const onMouseOver = () => {
+  mouseData.showCursor = false
+}
 </script>
 
 <style lang="sass">
@@ -119,6 +127,7 @@ const minimapStyle = computed(
   border: $b-style
   border-radius: 5px
   z-index: 5
+  pointer-events: all
 
   @media screen and (max-width: 600px)
     left: 22px

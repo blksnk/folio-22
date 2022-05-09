@@ -56,6 +56,7 @@ export const useApiData = defineStore("apiData", {
         const res = await loadApi();
         if (res?.projects) {
           this.projects = res.projects;
+          this.selectedId = this.projects[0]?.uid || 0;
           this.projectWindows = createProjectWindows(
             res.projects,
             baseWindowSize

@@ -6,6 +6,12 @@ const router = createRouter({
   routes: [
     {
       path: "/",
+      redirect: (to) => ({
+        path: "/index",
+      }),
+    },
+    {
+      path: "/index",
       name: "home",
       component: IndexView,
     },
