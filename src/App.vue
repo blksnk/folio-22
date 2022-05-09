@@ -20,19 +20,20 @@ const mouseData = useMouseData();
 const apiData = useApiData();
 const gestureData = useGestureData();
 
-
 // cursor vars
 
 const mousePos = reactive<Vector2>({ x: 0, y: 0 });
 const targetMousePos = reactive<Vector2>({ x: 0, y: 0 });
 const mouseDown = ref<boolean>(false);
 
-const SCROLL_MULTIPLIER = apiData.isMobile ? 1.5 : 1
+const SCROLL_MULTIPLIER = apiData.isMobile ? 1.5 : 1;
 // cursor handling
 
 function translateCursor() {
-  mouseData.mousePos.x += (mouseData.targetMousePos.x - mouseData.mousePos.x) * 0.09;
-  mouseData.mousePos.y += (mouseData.targetMousePos.y - mouseData.mousePos.y) * 0.09;
+  mouseData.mousePos.x +=
+    (mouseData.targetMousePos.x - mouseData.mousePos.x) * 0.09;
+  mouseData.mousePos.y +=
+    (mouseData.targetMousePos.y - mouseData.mousePos.y) * 0.09;
 }
 
 // scroll handling
@@ -63,8 +64,8 @@ const onMove = (vec: Vector2, delta: Vector2) => {
   mouseData.targetMousePos.x = vec.x;
   mouseData.targetMousePos.y = vec.y;
 
-  if(mouseData.mousDown) {
-    gestureData.setTargetScrollPos(delta)
+  if (mouseData.mousDown) {
+    gestureData.setTargetScrollPos(delta);
   }
 };
 
@@ -74,14 +75,17 @@ const onTouch = (positions: Vector2[]) => {
   // } else if (mouseDown.value) {
   //   mouseDown.value = false;
   // }
+  if (!mouseData.isTouch) {
+    mouseData.isTouch = true;
+  }
   if (positions.length === 1) {
     const deltas = {
       x: (mouseData.targetMousePos.x - positions[0].x) * SCROLL_MULTIPLIER,
       y: (mouseData.targetMousePos.y - positions[0].y) * SCROLL_MULTIPLIER,
-    }
+    };
     gestureData.setTargetScrollPos(deltas);
-    mouseData.targetMousePos.x = positions[0].x
-    mouseData.targetMousePos.y = positions[0].y
+    mouseData.targetMousePos.x = positions[0].x;
+    mouseData.targetMousePos.y = positions[0].y;
   }
 };
 
@@ -98,6 +102,13 @@ const onResize = () => {
     x: x < 600 ? 250 : 500,
     y: y < 600 ? 250 : 500,
   };
+};
+
+const onMouseDown = () => {
+  if (mouseData.isTouch) {
+    console.log('runs')
+    // mouseData.isTouch = false;
+  }
 };
 
 // main animation loop. runs every frame.
@@ -121,6 +132,7 @@ onMounted(() => {
 
   window.addEventListener("resize", onResize);
   window.addEventListener("wheel", onWheel);
+  window.addEventListener("mousedown", onMouseDown);
 
   animateLoop();
 });
@@ -128,6 +140,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("resize", onResize);
   window.removeEventListener("wheel", onWheel);
+  window.removeEventListener("mousedown", onMouseDown);
   cancelAnimationFrame(frameId);
   if (gestures) {
     gestures.destroy();

@@ -203,16 +203,6 @@ export const generateWindowPositions = (
     windowSizes.push(currentWindowSize);
     windowPositions.push(position);
   });
-
-  // apply random offset every column
-  // for (let i = 2; i < windowPositions.length; i += 2) {
-  //   const randomOffset = generateRandomOffset();
-  //   windowPositions[i].top += randomOffset;
-  //   if (windowPositions[i + 1]) {
-  //     windowPositions[i + 1].top += randomOffset;
-  //   }
-  // }
-
   return windowPositions;
 };
 
@@ -266,15 +256,15 @@ const generateMediaWindowPosition = (
   offsetX: number,
   rootWindowPos: Vector2,
   rootWindowSize: Vector2,
-  margin: number
+  margin: number,
+  prevMediaSize: Vector2
 ): Boundary => {
-  const left = offsetX + margin;
+  console.log(prevMediaSize.x);
+  const left = offsetX + margin + (currentMediaSize.x - prevMediaSize.x) / 2;
   // const top = rootWindowPos.y + (rootWindowSize.y / 2 - currentMediaSize.y / 2);
   const alignedToBottom =
     rootWindowPos.y + (rootWindowSize.y / 2 - currentMediaSize.y / 2);
   const top = alignedToBottom + (rootWindowPos.y - alignedToBottom); // + generateRandomOffset();
-  //  - currentMediaSize.y / 2 + rootWindowSize.y / 2;
-  // const top = rootWindowPos.y * ((rootWindowSize.y - 46) / currentMediaSize.y);
   return {
     left,
     right: left + currentMediaSize.x,
@@ -306,7 +296,9 @@ export const createMediaWindows = (
   const diffX = (firstWindowSize.x - rootWindowSize.x) / 2;
   offsetX += diffX;
 
-  const mediaWindows = projectMedias.map((media) => {
+  const sizes: Vector2[] = [];
+
+  const mediaWindows = projectMedias.map((media, index) => {
     const size = generateWindowSize(
       media.media.original.aspectRatio,
       baseWindowSize
@@ -316,10 +308,12 @@ export const createMediaWindows = (
       offsetX,
       rootWindow.initialPosition,
       rootWindowSize,
-      margin
+      margin,
+      sizes[index - 1] || size
     );
     // update offsetX with latest media window position
     offsetX = position.right;
+    sizes.push(size);
     // generate WindowData
     const pos = { x: position.left, y: position.top };
     const t = { ...pos, scale: 1 };

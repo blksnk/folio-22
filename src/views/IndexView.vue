@@ -196,6 +196,7 @@ function onMove(
 }
 
 function onTouch(touchPositions: Vector2[]): void {
+  console.log(touchPositions.length)
   if (touchPositions.length === 1) {
     onMove(
       { x: 0, y: 0 },
@@ -207,6 +208,8 @@ function onTouch(touchPositions: Vector2[]): void {
     lastMousePos.x = touchPositions[0].x;
     lastMousePos.y = touchPositions[0].y;
   }
+  // else {
+  // }
 }
 
 function decreaseVelocity(dragFactor = 0.0) {

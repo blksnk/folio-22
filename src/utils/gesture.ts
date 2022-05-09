@@ -171,7 +171,7 @@ class GestureHandler {
   }
 
   private handleMultitouch() {
-    if (this.touches.length === 2) {
+    if (this.touches.length >= 2) {
       this.handlePinch();
     }
   }
@@ -189,16 +189,21 @@ class GestureHandler {
         y: this.touchPositions[0].y - this.touchPositions[1].y,
       };
 
+      const deltas = {
+        x: (oldDiff.x - newDiff.x) * 0.02,
+        y: (oldDiff.y - newDiff.y) * 0.02,
+      };
+
       // const pinchDelta = largestAbsolute(oldDiff.x, oldDiff.y) - largestAbsolute(newDiff.x, newDiff.y);
-      this.onPinch({ x: oldDiff.x - newDiff.x, y: oldDiff.y - newDiff.y });
+      this.onPinch(deltas);
     }
   }
 
   _onTouchStart(e: Event) {
     // this.prevent(e);
     const touchEvent = e as TouchEvent;
-    this.oldTouches = this.touches;
-    this.touches = [...touchEvent.changedTouches];
+    this.oldTouches = [...this.touches];
+    this.touches = [...touchEvent.touches];
     this.touchPositions = this.getTouchPositions(this.touches);
     this.multitouch = this.touches.length > 1;
     if (this.onStart) this.onStart(this.touchPositions[0]);
@@ -230,7 +235,7 @@ class GestureHandler {
     const touchEvent = e as TouchEvent;
     this.oldTouches = this.touches;
 
-    this.touches = [...touchEvent.changedTouches];
+    this.touches = [...touchEvent.targetTouches];
     // handle pinch
     this.multitouch = this.touches.length > 1;
     this.touchPositions = this.getTouchPositions(this.touches);

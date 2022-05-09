@@ -1,5 +1,5 @@
 <template>
-  <div id="cursor__container" :style="containerStyle">
+  <div id="cursor__container" :style="containerStyle" v-if="!mouseData.isTouch">
     <div
       id="cursor"
       :class="{
