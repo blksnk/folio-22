@@ -17,7 +17,8 @@
     "qs": "^6.10.3",
     "sass": "^1.49.0",
     "vue": "^3.2.27",
-    "vue-router": "^4.0.12"
+    "vue-router": "^4.0.12",
+    "worker-loader": "^3.0.8"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.1.0",

@@ -37,6 +37,9 @@ const emit = defineEmits(["click"]);
   -wekit-overflow: hidden
   clip-path: border-box
   background: none
+  pointer-events: all
+  cursor: pointer
+  z-index: 30
 
   &::before
     @include fl-center

@@ -13,6 +13,7 @@ import { useGestureData } from "@/stores/gestureData";
 
 import NavBar from "./components/NavBar.vue";
 import MouseCursor from "@/components/MouseCursor.vue";
+import Loader from "./views/Loader.vue";
 
 let frameId = 0;
 
@@ -151,6 +152,7 @@ onBeforeUnmount(() => {
 <template>
   <router-view v-if="apiData.loaded && apiData.imgsPreloaded"> </router-view>
   <NavBar />
+  <Loader/>
   <MouseCursor v-if="!apiData.isMobile" />
 </template>
 

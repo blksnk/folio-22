@@ -120,7 +120,7 @@ const onMouseOver = () => {
 
 #minimap
   @include blur-bg
-  position: fixed
+  position: absolute
   bottom: 32px
   left: 32px
   overflow: hidden

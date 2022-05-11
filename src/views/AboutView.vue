@@ -95,8 +95,8 @@
       </div>
       <h2 class="about__heading">Drop me a message !</h2>
       <div id="about__contact">
-        <a href="mailto:hello@genmetsu.art" target="_blank" class="hover__underline">hello@genmetsu.art</a>
-        <a href="tel:+33658238758" class="hover__underline">(+33) 6 58 23 87 58</a>
+        <a href="mailto:hello@genmetsu.art" target="_blank" class="hover_underline">hello@genmetsu.art</a>
+        <a href="tel:+33658238758" class="hover_underline">(+33) 6 58 23 87 58</a>
       </div>
     </div>
   </fixed-frame>

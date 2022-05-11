@@ -18,7 +18,7 @@
       :hidden="window.hidden"
       :screenSize="screenSize"
       :tags="window?.tags"
-      @click="() => selectWindow(window.id, false)"
+      @click="() => onWindowClick(window.id)"
       @mouseover="onMouseOver(window.id)"
       @mouseleave="onMouseLeave()"
       @buttonOver="onMouseLeave()"
@@ -131,11 +131,12 @@ function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
     if (
       isBetween(offsetFromCenter.x, 0.5, 0.6) &&
       isBetween(offsetFromCenter.y, 0.5, 0.6) &&
-      !translating.value &&
-      !isMediaWindow(window.id)
+      !translating.value
+      // !isMediaWindow(window.id)
       // apiData.selectedId !== window.id
     ) {
       setWindowSelection(window.id);
+      apiData.selectedId = window.id;
     }
     window.transformPreZoom.x += vel.x * (2 - zoom); // * offsetFromCenter.x;
     window.transformPreZoom.y += vel.y * (2 - zoom); //* offsetFromCenter.y;
@@ -270,6 +271,15 @@ function onClose(windowId?: string) {
   apiData.showAllProjectWindows();
 }
 
+const onWindowClick = (targetId: string, ...args: unknown[]) => {
+  if(apiData.selectedId === targetId && apiData.openWindow?.id !== targetId && !isMediaWindow(targetId)) {
+    onOpen(targetId)
+  } else {
+    selectWindow(targetId, false)
+  }
+  onMouseOver(targetId)
+}
+
 const selectWindow = (
   targetId: number | string,
   forceShowCursor = false,
@@ -357,7 +367,7 @@ function onMouseOver(windowId: string) {
     window &&
     !window.hidden
   ) {
-    mouseData.showCursor = true;
+    mouseData.showCursor = isMediaWindow(windowId) ? !window.selected : window.open ? !window.selected : true;
     mouseData.cursorIcon =
       isMediaWindow(windowId) || window.open || apiData.selectedId !== windowId
         ? "eye-outline"
@@ -489,8 +499,16 @@ const onKeyUp = (e: KeyboardEvent) => {
 
 onMounted(async () => {
   setInitalBoundaries();
-  onIndexEnter();
-  animate();
+    if(!apiData.loaderAnimationFinished) {
+      animate();
+      setTimeout(() => {
+        apiData.indexEnterFinished = true
+      }, 1000)
+    } else {
+      await onIndexEnter();
+      animate();
+
+    }
 
   gestures = new GestureHandler({
     onStart,

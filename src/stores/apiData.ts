@@ -10,6 +10,9 @@ import { defineStore } from "pinia";
 
 type Callback = (arg: any) => void;
 
+const apiDataWorker = new Worker("/apiDataWorker.js");
+const windowDataWorker = new Worker("/windowDataWorker.js");
+
 export const useApiData = defineStore("apiData", {
   state: (): {
     projects: Project[];
@@ -20,6 +23,9 @@ export const useApiData = defineStore("apiData", {
     isMobile: boolean;
     baseWindowSize: Vector2;
     selectedId: string | number;
+    loaderAnimationFinished: boolean;
+    indexEnterFinished: boolean;
+    loadingProgress: number;
   } => ({
     projects: [],
     projectWindows: [],
@@ -32,6 +38,9 @@ export const useApiData = defineStore("apiData", {
       y: window.innerWidth < 600 ? 300 : 500,
     },
     selectedId: 0,
+    loaderAnimationFinished: false,
+    indexEnterFinished: false,
+    loadingProgress: 0,
   }),
   getters: {
     allWindows: (state) => [
@@ -53,24 +62,55 @@ export const useApiData = defineStore("apiData", {
       onError?: Callback
     ) {
       try {
-        const res = await loadApi();
-        if (res?.projects) {
-          this.projects = res.projects;
-          this.selectedId = this.projects[0]?.uid || 0;
-          this.projectWindows = createProjectWindows(
-            res.projects,
-            baseWindowSize
-          );
-          this.mediaWindows = createAllProjectsMediaWindows(
-            res.projects,
-            this.projectWindows,
-            baseWindowSize
-          );
-          await this.preloadImages(onError);
-          this.loaded = true;
+        apiDataWorker.onmessage = (e) => {
+          console.log(e);
+          if (e.data?.projects) {
+            this.projects = e.data.projects;
+            this.selectedId = this.projects[0]?.uid || 0;
+            this.loadingProgress = 25;
+            windowDataWorker.postMessage({
+              baseWindowSize: JSON.stringify(baseWindowSize),
+              projects: JSON.stringify(e.data.projects),
+            });
+          }
+        };
+        windowDataWorker.onmessage = async (e) => {
+          console.log(e.data);
+          if (e.data.projectWindows) {
+            this.projectWindows = e.data.projectWindows;
+          }
+          if (e.data.mediaWindows) {
+            this.mediaWindows = e.data.mediaWindows;
+          }
+          if (e.data.progress) {
+            this.loadingProgress = e.data.progress;
+            if (e.data.progress === 90) {
+              await this.preloadImages(onError);
+              this.loaded = true;
+              if (onSuccess) onSuccess(this.projects);
+            }
+          }
+        };
 
-          if (onSuccess) onSuccess(res.projects);
-        } else throw new Error("Empty response");
+        apiDataWorker.postMessage("load");
+        // const res = await loadApi();
+        // if (res?.projects) {
+        //   this.projects = res.projects;
+        //   this.selectedId = this.projects[0]?.uid || 0;
+        //   this.projectWindows = createProjectWindows(
+        //     res.projects,
+        //     baseWindowSize
+        //   );
+        //   this.mediaWindows = createAllProjectsMediaWindows(
+        //     res.projects,
+        //     this.projectWindows,
+        //     baseWindowSize
+        //   );
+        //   await this.preloadImages(onError);
+        //   this.loaded = true;
+
+        //   if (onSuccess) onSuccess(res.projects);
+        // } else throw new Error("Empty response");
       } catch (e) {
         if (onError) onError(e);
       }
@@ -89,6 +129,8 @@ export const useApiData = defineStore("apiData", {
         );
         const loaded = preloaded.every((bool) => bool);
         this.imgsPreloaded = loaded;
+        this.loadingProgress = 100;
+
         return loaded;
       } catch (e) {
         if (onError) onError(e);
