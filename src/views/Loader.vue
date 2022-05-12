@@ -33,7 +33,7 @@ const onLoadingComplete = () => {
       const hideElement = () => {
         setTimeout(() => {
           loader.style.pointerEvents = "none";
-          // loader.style.display = "none";
+          loader.style.display = "none";
         }, 400)
       }
       hideLoaderText(() => {

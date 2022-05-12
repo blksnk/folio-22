@@ -46,17 +46,13 @@ import {
   onBeforeUnmount,
   onMounted,
   computed,
-  ref,
-  watchEffect,
 } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
-import { debounce } from "lodash";
 
 import FixedFrame from "@/components/FixedFrame.vue";
 import Window from "@/components/Window.vue";
 import Minimap from "@/components/Minimap.vue";
 
-import GestureHandler from "@/utils/gesture";
 import {
   createBoundaries,
   keepInBoundaries,
@@ -65,17 +61,14 @@ import {
   computeZoomTarget,
 } from "@/utils/layout";
 import {
-  WindowData,
   ScreenDims,
   Boundary,
-  Vector2,
 } from "@/utils/layout.types";
 import { ArrowDirection } from "@/utils/gestures.types";
 import { onIndexEnter, onIndexLeave } from "@/utils/transition";
-import { clamp, getScaleCoef, largestAbsolute, isBetween } from "@/utils/math";
 import { useApiData } from "@/stores/apiData";
 import { useMouseData } from "@/stores/mouseData";
-import { useGestureData, velocity } from "@/stores/gestureData";
+import { useGestureData } from "@/stores/gestureData";
 
 const mouseData = useMouseData();
 const apiData = useApiData();
@@ -83,16 +76,6 @@ const gestureData = useGestureData();
 
 let screenSize = reactive<ScreenDims>(getScreenDims());
 
-let mouseDown = false;
-// let lastMousePos: Vector2 = { x: 0, y: 0 };
-// let velocity = reactive<Vector2>({ x: 0, y: 0 });
-
-let minMoveFactor = 0.55;
-let dragFactor = 0.85;
-let frameId = 0;
-// let translating = ref<boolean>(false);
-// let selectedId = reactive<{ id: string | number }>({ id: 0 });
-let gestures: GestureHandler | undefined;
 
 const initialBoundaries = reactive<Boundary>({
   top: -10000,
@@ -100,134 +83,6 @@ const initialBoundaries = reactive<Boundary>({
   left: -10000,
   right: 10000,
 });
-
-function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
-  return Math.max(
-    Math.abs(screenSize.center[vectorName] - value) / screenSize[vectorName] +
-      minMoveFactor,
-    0
-  );
-}
-
-function tranformWindowsOnDrag(): void {
-  const zoom = gestureData.zoomFactor;
-  const zoomInvert = 1 - zoom;
-
-  apiData.allWindows.forEach((window) => {
-    const { x, y } = window.transform;
-
-    const offsetFromCenter: Vector2 = {
-      x: getOffsetFromCenterCoef(x, "x"),
-      y: getOffsetFromCenterCoef(y, "y"),
-    };
-    const scale = getScaleCoef(offsetFromCenter);
-    // select window if centered
-    if (
-      isBetween(offsetFromCenter.x, 0.5, 0.6) &&
-      isBetween(offsetFromCenter.y, 0.5, 0.6) &&
-      !gestureData.translating &&
-      !window.hidden &&
-      // !isMediaWindow(window.id)
-      apiData.selectedId !== window.id
-    ) {
-      apiData.setWindowSelection(window.id);
-    }
-    window.transformPreZoom.x += velocity.x * (2 - zoom); // * offsetFromCenter.x;
-    window.transformPreZoom.y += velocity.y * (2 - zoom); //* offsetFromCenter.y;
-    window.targetTransform.x =
-      window.transformPreZoom.x * zoom + screenSize.center.x * zoomInvert;
-    window.targetTransform.y =
-      window.transformPreZoom.y * zoom + screenSize.center.y * zoomInvert;
-    window.targetTransform.scale = scale * zoom;
-  });
-}
-
-function onStart({ x, y }: Vector2): void {
-  // wait for a click on window. if no click, toggle zoom animation on move
-
-//   if (!gestureData.translating && !apiData.isWindowOpen && !gestureData.dragDezooming) {
-//     setTimeout(() => {
-//       if (!gestureData.dragDezooming && mouseDown) {
-//         gestureData.dragDezooming = true;
-//         gestureData.preTranslateZoomTarget = gestureData.zoomTarget;
-//         gestureData.zoomTarget = gestureData.preTranslateZoomTarget * 0.8;
-//       }
-//     }, 100);
-//   }
-//  mouseData.lastMousePos.x = x;
-//  mouseData.lastMousePos.y = y;
-//   mouseDown = true;
-}
-
-function onEnd(): void {
-  // gestureData.zoomTarget = gestureData.preTranslateZoomTarget;
-  // setTimeout(() => {
-  //   gestureData.dragDezooming = false;
-  // }, 10);
-  // mouseDown = false;
-}
-
-function onMove(
-  fromTouch: Vector2,
-  { x, y }: Vector2,
-  fromTrackpad?: boolean
-): void {
-  // if (mouseDown || fromTrackpad) {
-    // zoomTarget = zoomFactor.value;
-    // gestureData.translating = false;
-    // const deltaX: number = x - mouseData.lastMousePos.x;
-    // const deltaY: number = y - mouseData.lastMousePos.y;
-
-    // velocity.x = x * (2 - gestureData.zoomFactor);
-    // if (!apiData.isWindowOpen) {
-    //   velocity.y = y * (2 - gestureData.zoomFactor);
-    // }
-  // }
-
-  // if (fromTouch && !fromTrackpad) {
-  // }
-  // mouseData.lastMousePos.x = x;
-  // mouseData.lastMousePos.y = y;
-}
-
-function onTouch(touchPositions: Vector2[]): void {
-  // console.log(touchPositions.length)
-  // if (touchPositions.length === 1) {
-  //   onMove(
-  //     { x: 0, y: 0 },
-  //     {
-  //       x: touchPositions[0].x - mouseData.lastMousePos.x,
-  //       y: touchPositions[0].y - mouseData.lastMousePos.y,
-  //     }
-  //   );
-  //  mouseData.lastMousePos.x = touchPositions[0].x;
-  //  mouseData.lastMousePos.y = touchPositions[0].y;
-  // }
-  // // else {
-  // // }
-}
-
-function decreaseVelocity(dragFactor = 0.0) {
-  velocity.x *= dragFactor;
-  velocity.y *= dragFactor;
-  // if (
-  //   Math.abs(velocity.x) < 0.000001
-  // ) {
-  //   velocity.x = 0;
-  // }
-  // if (
-  //   (velocity.y > 0 && velocity.y < 0.000001) ||
-  //   (velocity.y < 0 && velocity.y > -0.000001)
-  // ) {
-  //   velocity.y = 0;
-  // }
-}
-
-function setWindowSelection(selectId: number | string) {
-  apiData.allWindows.forEach((window) => {
-    window.selected = window.id === selectId;
-  });
-}
 
 const showSelectedProjectMediaWindows = (openWindowId: string) => {
   const selectedProjectMediaUids =
@@ -323,41 +178,6 @@ const selectWindow = (
   }
 };
 
-function translateToTargetPos() {
-  if (apiData.selectedWindow && gestureData.translating) {
-    const { x, y } = apiData.selectedWindow.transform;
-    const dstToTarget = {
-      x: screenSize.center.x - x,
-      y: screenSize.center.y + 24 - y,
-    };
-
-    const needsTranslate =
-      Math.max(Math.abs(dstToTarget.x), Math.abs(dstToTarget.y)) > 1;
-
-    if (needsTranslate) {
-      velocity.x += dstToTarget.x * 0.005;
-      velocity.y += (dstToTarget.y * 0.005) / screenSize.ratio;
-    } else if (gestureData.translating) {
-      console.log('reset translating', apiData.selectedId)
-      gestureData.translating = false;
-      apiData.setWindowSelection(apiData.selectedId);
-    }
-  }
-}
-
-function onWheel({ x, y }: Vector2) {
-  // const target = clamp(gestureData.zoomTarget - largestAbsolute(x, y) / 500, 0.2, 1.6);
-  // gestureData.zoomTarget = target
-  // // gestureData.preTranslateZoomTarget = target
-}
-
-function onPinch({ x, y }: Vector2) {
-  // onWheel({ x, y })
-}
-
-function applyZoom() {
-  gestureData.zoomFactor += (gestureData.zoomTarget - gestureData.zoomFactor) * 0.05;
-}
 
 function onMouseOver(windowId: string) {
   const window = apiData.getWindowById(windowId);
@@ -378,16 +198,6 @@ function onMouseLeave() {
   mouseData.showCursor = false;
 }
 
-function animate(): void {
-  frameId = requestAnimationFrame(animate);
-  // applyZoom();
-  // translateToTargetPos();
-  // tranformWindowsOnDrag();
-  // keepInBounds();
-  // keepInBoundaries(translatePosition, effectiveBoundaries.value);
-  // decreaseVelocity(gestureData.translating ? dragFactor : 0);
-}
-
 const minimapItems = computed(() =>
   apiData.allWindows.map(({ transform, thumbnail, selected, id, hidden }) => ({
     transform: {
@@ -402,16 +212,6 @@ const minimapItems = computed(() =>
     id,
   }))
 );
-
-// TODO: fix translateToTargetPos on new screenSize
-const onResize = debounce(() => {
-  const { x, y, center, ratio } = getScreenDims();
-  screenSize.x = x;
-  screenSize.y = y;
-  screenSize.center = center;
-  screenSize.ratio = ratio;
-  // setInitalBoundaries();
-}, 500);
 
 function setInitalBoundaries() {
   const bounds = createBoundaries(
@@ -498,50 +298,24 @@ const onKeyUp = (e: KeyboardEvent) => {
 
 onMounted(async () => {
   setInitalBoundaries();
-    if(!apiData.loaderAnimationFinished) {
-      // animate();
-      setTimeout(() => {
-        apiData.indexEnterFinished = true
-      }, 1000)
-    } else {
+    if(apiData.loaderAnimationFinished) {
       await onIndexEnter();
-      // animate();
-
     }
 
-  // gestures = new GestureHandler({
-  //   onStart,
-  //   onEnd,
-  //   onMove,
-  //   onTouch,
-  //   onWheel,
-  //   onPinch,
-  //   preventDefault: true,
-  // });
-
-  window.addEventListener("resize", onResize);
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
 });
 
 onBeforeUnmount(() => {
-  cancelAnimationFrame(frameId);
-  window.removeEventListener("resize", onResize);
   window.removeEventListener("keydown", onKeyDown);
   window.removeEventListener("keyup", onKeyUp);
   gestureData.translating = false;
-  if (gestures) {
-    gestures.destroy();
-  }
 });
 
 onBeforeRouteUpdate(onIndexEnter);
 
 onBeforeRouteLeave(
   onIndexLeave(() => {
-    if (gestures) {
-      gestures.destroy();
-    }
     mouseData.showCursor = false;
   })
 );
