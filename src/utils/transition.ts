@@ -106,3 +106,36 @@ export const onInfoLeave = () =>
       }
     );
   });
+
+export const hideLoaderText = (onComplete: () => void) => {
+  gsap.to("#loader__progress__text", {
+    y: 200,
+    duration: 0.6,
+    delay: 0.6,
+    ease: Power2.easeIn,
+    onComplete,
+  });
+};
+
+export const hideLoader = (onComplete: () => void) => {
+  gsap.to("#loader", {
+    opacity: 0,
+    duration: 0.3,
+    // ease: Power2.easeIn,
+    onComplete,
+  });
+};
+
+export const transitionToTutorial = (onComplete: () => void) => {
+  const bg = document.getElementById("loader__background");
+  if (bg) {
+    const size = window.innerWidth < 600 ? 150 : 250;
+    gsap.to(bg, {
+      width: size,
+      height: size,
+      duration: 0.6,
+      ease: Power2.easeInOut,
+      onComplete,
+    });
+  }
+};

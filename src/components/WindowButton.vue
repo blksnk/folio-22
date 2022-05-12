@@ -6,6 +6,7 @@
       active: props?.active,
     }"
     :data-content="props.active ? props.activeText : props.text"
+    :title="props.active ? props.activeText : props.text"
     @click="emit('click')"
   ></button>
 </template>

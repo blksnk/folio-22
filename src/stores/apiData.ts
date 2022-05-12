@@ -25,7 +25,11 @@ export const useApiData = defineStore("apiData", {
     selectedId: string | number;
     loaderAnimationFinished: boolean;
     indexEnterFinished: boolean;
+    tutorialFinished: boolean;
     loadingProgress: number;
+    zoomTarget: number;
+    preTranslateZoomTarget: number;
+    zoomFactor: number;
   } => ({
     projects: [],
     projectWindows: [],
@@ -40,7 +44,11 @@ export const useApiData = defineStore("apiData", {
     selectedId: 0,
     loaderAnimationFinished: false,
     indexEnterFinished: false,
+    tutorialFinished: false,
     loadingProgress: 0,
+    zoomTarget: window.innerWidth < 600 ? 0.8 : 0.6,
+    preTranslateZoomTarget: window.innerWidth < 600 ? 0.8 : 0.6,
+    zoomFactor: 1,
   }),
   getters: {
     allWindows: (state) => [
@@ -63,7 +71,6 @@ export const useApiData = defineStore("apiData", {
     ) {
       try {
         apiDataWorker.onmessage = (e) => {
-          console.log(e);
           if (e.data?.projects) {
             this.projects = e.data.projects;
             this.selectedId = this.projects[0]?.uid || 0;
@@ -75,7 +82,6 @@ export const useApiData = defineStore("apiData", {
           }
         };
         windowDataWorker.onmessage = async (e) => {
-          console.log(e.data);
           if (e.data.projectWindows) {
             this.projectWindows = e.data.projectWindows;
           }
@@ -93,24 +99,6 @@ export const useApiData = defineStore("apiData", {
         };
 
         apiDataWorker.postMessage("load");
-        // const res = await loadApi();
-        // if (res?.projects) {
-        //   this.projects = res.projects;
-        //   this.selectedId = this.projects[0]?.uid || 0;
-        //   this.projectWindows = createProjectWindows(
-        //     res.projects,
-        //     baseWindowSize
-        //   );
-        //   this.mediaWindows = createAllProjectsMediaWindows(
-        //     res.projects,
-        //     this.projectWindows,
-        //     baseWindowSize
-        //   );
-        //   await this.preloadImages(onError);
-        //   this.loaded = true;
-
-        //   if (onSuccess) onSuccess(res.projects);
-        // } else throw new Error("Empty response");
       } catch (e) {
         if (onError) onError(e);
       }

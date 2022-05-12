@@ -69,9 +69,8 @@ nav
     #nav__title
       color: $c-grey-6
       @include f-nav-link
-      font-family: 'Canela'
-      font-style: italic
-
+      font-weight: 700
+      text-transform: uppercase
 
 .link
   color: $c-grey-6

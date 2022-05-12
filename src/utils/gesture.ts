@@ -16,6 +16,7 @@ interface GestureHandlerOptions {
   onTouch?: onTouchFunc;
   onPinch?: VectorArgFunc;
   onWheel?: VectorArgFunc;
+  onWheel_Native?: VectorArgFunc;
   onEnd?: func;
   target?: HTMLElement;
   preventDefault?: boolean;
@@ -27,6 +28,7 @@ class GestureHandler {
   onTouch?: onTouchFunc;
   onPinch?: VectorArgFunc;
   onWheel?: VectorArgFunc;
+  onWheel_Native?: VectorArgFunc;
   onEnd?: func;
   target: (Window & typeof globalThis) | HTMLElement = window;
   preventDefault = true;
@@ -68,6 +70,9 @@ class GestureHandler {
     }
     if (options.onWheel) {
       this.onWheel = options.onWheel;
+    }
+    if (options.onWheel) {
+      this.onWheel_Native = options.onWheel_Native;
     }
     if (options.onPinch) {
       this.onPinch = options.onPinch;
@@ -254,6 +259,7 @@ class GestureHandler {
     const E = e as WheelEvent;
     const { deltaX, deltaY } = E;
     const deltaVec = { x: deltaX, y: deltaY };
+    if (this.onWheel_Native) this.onWheel_Native(deltaVec);
     // change zoom
     e.preventDefault();
     if (this.isTrackpad) {
@@ -262,9 +268,7 @@ class GestureHandler {
       } else if (this.onMove) {
         this.onMove(this.mousePos, { x: -deltaVec.x, y: -deltaVec.y }, true);
       }
-    } else {
-      if (this.onWheel) this.onWheel(deltaVec);
-    }
+    } else if (this.onWheel) this.onWheel(deltaVec);
   }
 
   detectTrackPad(e: any) {

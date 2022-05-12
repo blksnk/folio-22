@@ -69,8 +69,6 @@ export interface WindowProps {
   id: number | string;
   selected?: boolean;
   thumbnail: ImageFormats;
-  velocity?: Vector2;
-  zoomFactor: number;
   open: boolean;
   draggable?: boolean;
   hidden: boolean;

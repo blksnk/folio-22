@@ -9,8 +9,8 @@
       <div class="overlay__frame__title__left">
         <h1>
           <span @click="onClick()" class="folder__name hover_underline"
-            >Index // </span
-          >{{ apiData.openWindow?.title }}
+            >Index //</span
+          > {{ apiData.openWindow?.title }}
         </h1>
         <div v-if="apiData.openWindow?.tags" class="tags">
           <div
@@ -84,10 +84,12 @@ const onClick = () => emit("close");
     z-index: 100
     transform: translateY(-48px)
     transition: transform .2s ease-in
+    pointer-events: none
 
     &.show
       transform: translateY(0px)
       transition: transform .4s ease-out
+      pointer-events: all,
 
     h1
       @include f-project-title
@@ -100,6 +102,10 @@ const onClick = () => emit("close");
       .folder__name
         @include f-project-title__light
         color: $c-grey-3
+        transition: color .2s linear
+
+        &:hover
+          color: $c-primary
 
   .overlay__frame__title__left
     @include fl-start

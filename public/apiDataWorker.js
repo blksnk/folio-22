@@ -100,7 +100,6 @@ const formatProjects = (projects) => {
 const loadApi = async () => {
   try {
     const projects = await fetchProjects();
-    console.log(projects)
     const formattedProjects = formatProjects(projects.data);
 
     return { projects: formattedProjects };

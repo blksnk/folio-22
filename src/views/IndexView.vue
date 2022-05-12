@@ -13,8 +13,6 @@
       :selected="window.selected"
       :thumbnail="window.thumbnail"
       :open="window.open || isMediaWindow(window.id)"
-      :velocity="velocity"
-      :zoomFactor="zoomFactor.value"
       :hidden="window.hidden"
       :screenSize="screenSize"
       :tags="window?.tags"
@@ -29,7 +27,6 @@
       :items="minimapItems"
       :screenSize="screenSize"
       :onSelect="selectWindow"
-      :zoomFactor="zoomFactor"
     />
   </FixedFrame>
 </template>
@@ -78,28 +75,25 @@ import { onIndexEnter, onIndexLeave } from "@/utils/transition";
 import { clamp, getScaleCoef, largestAbsolute, isBetween } from "@/utils/math";
 import { useApiData } from "@/stores/apiData";
 import { useMouseData } from "@/stores/mouseData";
+import { useGestureData, velocity } from "@/stores/gestureData";
 
 const mouseData = useMouseData();
 const apiData = useApiData();
+const gestureData = useGestureData();
 
 let screenSize = reactive<ScreenDims>(getScreenDims());
 
 let mouseDown = false;
-let lastMousePos: Vector2 = { x: 0, y: 0 };
-let velocity = reactive<Vector2>({ x: 0, y: 0 });
+// let lastMousePos: Vector2 = { x: 0, y: 0 };
+// let velocity = reactive<Vector2>({ x: 0, y: 0 });
 
 let minMoveFactor = 0.55;
-let dragFactor = 0.9;
+let dragFactor = 0.85;
 let frameId = 0;
-let translating = reactive({ value: false });
+// let translating = ref<boolean>(false);
 // let selectedId = reactive<{ id: string | number }>({ id: 0 });
 let gestures: GestureHandler | undefined;
-let zoomFactor = reactive({ value: 0.15 });
-let preTranslateZoomTarget = apiData.isMobile ? 0.8 : 0.5;
-let zoomTarget = apiData.isMobile ? 0.8 : 0.6;
-let dragDezooming = false;
 
-let debugLine = reactive<Vector2>({ x: 0, y: 0 });
 const initialBoundaries = reactive<Boundary>({
   top: -10000,
   bottom: 10000,
@@ -115,11 +109,11 @@ function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   );
 }
 
-function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
-  const zoom = zoomFactor.value;
+function tranformWindowsOnDrag(): void {
+  const zoom = gestureData.zoomFactor;
   const zoomInvert = 1 - zoom;
 
-  windows.forEach((window, index) => {
+  apiData.allWindows.forEach((window) => {
     const { x, y } = window.transform;
 
     const offsetFromCenter: Vector2 = {
@@ -131,15 +125,15 @@ function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
     if (
       isBetween(offsetFromCenter.x, 0.5, 0.6) &&
       isBetween(offsetFromCenter.y, 0.5, 0.6) &&
-      !translating.value
+      !gestureData.translating &&
+      !window.hidden &&
       // !isMediaWindow(window.id)
-      // apiData.selectedId !== window.id
+      apiData.selectedId !== window.id
     ) {
       setWindowSelection(window.id);
-      apiData.selectedId = window.id;
     }
-    window.transformPreZoom.x += vel.x * (2 - zoom); // * offsetFromCenter.x;
-    window.transformPreZoom.y += vel.y * (2 - zoom); //* offsetFromCenter.y;
+    window.transformPreZoom.x += velocity.x * (2 - zoom); // * offsetFromCenter.x;
+    window.transformPreZoom.y += velocity.y * (2 - zoom); //* offsetFromCenter.y;
     window.targetTransform.x =
       window.transformPreZoom.x * zoom + screenSize.center.x * zoomInvert;
     window.targetTransform.y =
@@ -151,26 +145,26 @@ function tranformWindowsOnDrag(vel: Vector2, windows: WindowData[]): void {
 function onStart({ x, y }: Vector2): void {
   // wait for a click on window. if no click, toggle zoom animation on move
 
-  if (!translating.value && !apiData.isWindowOpen && !dragDezooming) {
-    setTimeout(() => {
-      if (!dragDezooming && mouseDown) {
-        dragDezooming = true;
-        preTranslateZoomTarget = zoomTarget;
-        zoomTarget = preTranslateZoomTarget * 0.8;
-      }
-    }, 100);
-  }
-  lastMousePos.x = x;
-  lastMousePos.y = y;
-  mouseDown = true;
+//   if (!gestureData.translating && !apiData.isWindowOpen && !gestureData.dragDezooming) {
+//     setTimeout(() => {
+//       if (!gestureData.dragDezooming && mouseDown) {
+//         gestureData.dragDezooming = true;
+//         gestureData.preTranslateZoomTarget = gestureData.zoomTarget;
+//         gestureData.zoomTarget = gestureData.preTranslateZoomTarget * 0.8;
+//       }
+//     }, 100);
+//   }
+//  mouseData.lastMousePos.x = x;
+//  mouseData.lastMousePos.y = y;
+//   mouseDown = true;
 }
 
 function onEnd(): void {
-  zoomTarget = preTranslateZoomTarget;
-  setTimeout(() => {
-    dragDezooming = false;
-  }, 10);
-  mouseDown = false;
+  // gestureData.zoomTarget = gestureData.preTranslateZoomTarget;
+  // setTimeout(() => {
+  //   gestureData.dragDezooming = false;
+  // }, 10);
+  // mouseDown = false;
 }
 
 function onMove(
@@ -178,56 +172,55 @@ function onMove(
   { x, y }: Vector2,
   fromTrackpad?: boolean
 ): void {
-  if (mouseDown || fromTrackpad) {
+  // if (mouseDown || fromTrackpad) {
     // zoomTarget = zoomFactor.value;
-    translating.value = false;
-    // const deltaX: number = x - lastMousePos.x;
-    // const deltaY: number = y - lastMousePos.y;
+    // gestureData.translating = false;
+    // const deltaX: number = x - mouseData.lastMousePos.x;
+    // const deltaY: number = y - mouseData.lastMousePos.y;
 
-    velocity.x = x * (2 - zoomFactor.value);
-    if (!apiData.isWindowOpen) {
-      velocity.y = y * (2 - zoomFactor.value);
-    }
-  }
+    // velocity.x = x * (2 - gestureData.zoomFactor);
+    // if (!apiData.isWindowOpen) {
+    //   velocity.y = y * (2 - gestureData.zoomFactor);
+    // }
+  // }
 
-  if (fromTouch && !fromTrackpad) {
-  }
-  // lastMousePos.x = x;
-  // lastMousePos.y = y;
+  // if (fromTouch && !fromTrackpad) {
+  // }
+  // mouseData.lastMousePos.x = x;
+  // mouseData.lastMousePos.y = y;
 }
 
 function onTouch(touchPositions: Vector2[]): void {
-  console.log(touchPositions.length)
-  if (touchPositions.length === 1) {
-    onMove(
-      { x: 0, y: 0 },
-      {
-        x: touchPositions[0].x - lastMousePos.x,
-        y: touchPositions[0].y - lastMousePos.y,
-      }
-    );
-    lastMousePos.x = touchPositions[0].x;
-    lastMousePos.y = touchPositions[0].y;
-  }
-  // else {
+  // console.log(touchPositions.length)
+  // if (touchPositions.length === 1) {
+  //   onMove(
+  //     { x: 0, y: 0 },
+  //     {
+  //       x: touchPositions[0].x - mouseData.lastMousePos.x,
+  //       y: touchPositions[0].y - mouseData.lastMousePos.y,
+  //     }
+  //   );
+  //  mouseData.lastMousePos.x = touchPositions[0].x;
+  //  mouseData.lastMousePos.y = touchPositions[0].y;
   // }
+  // // else {
+  // // }
 }
 
 function decreaseVelocity(dragFactor = 0.0) {
   velocity.x *= dragFactor;
   velocity.y *= dragFactor;
-  if (
-    (velocity.x > 0 && velocity.x < 0.000001) ||
-    (velocity.x < 0 && velocity.x > -0.000001)
-  ) {
-    velocity.x = 0;
-  }
-  if (
-    (velocity.y > 0 && velocity.y < 0.000001) ||
-    (velocity.y < 0 && velocity.y > -0.000001)
-  ) {
-    velocity.y = 0;
-  }
+  // if (
+  //   Math.abs(velocity.x) < 0.000001
+  // ) {
+  //   velocity.x = 0;
+  // }
+  // if (
+  //   (velocity.y > 0 && velocity.y < 0.000001) ||
+  //   (velocity.y < 0 && velocity.y > -0.000001)
+  // ) {
+  //   velocity.y = 0;
+  // }
 }
 
 function setWindowSelection(selectId: number | string) {
@@ -272,7 +265,13 @@ function onClose(windowId?: string) {
 }
 
 const onWindowClick = (targetId: string, ...args: unknown[]) => {
-  if(apiData.selectedId === targetId && apiData.openWindow?.id !== targetId && !isMediaWindow(targetId)) {
+  if(apiData.getWindowById(targetId)?.hidden) {
+    return
+  }
+  if(isMediaWindow(targetId)) {
+    selectWindow(targetId, false)
+  }
+  else if(apiData.selectedId === targetId && apiData.openWindow?.id !== targetId) {
     onOpen(targetId)
   } else {
     selectWindow(targetId, false)
@@ -297,17 +296,18 @@ const selectWindow = (
     (apiData.selectedId !== targetId || apiData.openWindow?.id === targetId) &&
     !window.hidden
   ) {
-    translating.value = true;
     apiData.selectedId = targetId;
+    gestureData.translating = true;
+    
     setWindowSelection(targetId);
-    if (!isMediaWindow(String(targetId))) {
-      mouseData.showCursor = true;
-      if (!window.open) {
-        mouseData.cursorIcon = "folder-open-outline";
-      }
-    } else {
-      mouseData.showCursor = false;
-    }
+    // if (!isMediaWindow(String(targetId))) {
+    //   mouseData.showCursor = true;
+    //   if (!window.open) {
+    //     mouseData.cursorIcon = "folder-open-outline";
+    //   }
+    // } else {
+    //   mouseData.showCursor = false;
+    // }
 
     const zoom =
       zt ||
@@ -318,13 +318,13 @@ const selectWindow = (
         ),
         apiData.isMobile ? 100 : 300
       );
-    zoomTarget = zoom;
-    preTranslateZoomTarget = zoom;
+    gestureData.zoomTarget = zoom;
+    gestureData.preTranslateZoomTarget = zoom;
   }
 };
 
 function translateToTargetPos() {
-  if (apiData.selectedWindow && translating.value) {
+  if (apiData.selectedWindow && gestureData.translating) {
     const { x, y } = apiData.selectedWindow.transform;
     const dstToTarget = {
       x: screenSize.center.x - x,
@@ -337,27 +337,26 @@ function translateToTargetPos() {
     if (needsTranslate) {
       velocity.x += dstToTarget.x * 0.005;
       velocity.y += (dstToTarget.y * 0.005) / screenSize.ratio;
-    } else if (translating.value) {
-      translating.value = false;
+    } else if (gestureData.translating) {
+      console.log('reset translating', apiData.selectedId)
+      gestureData.translating = false;
       setWindowSelection(apiData.selectedId);
     }
   }
 }
 
 function onWheel({ x, y }: Vector2) {
-  zoomTarget = clamp(zoomTarget - largestAbsolute(x, y) / 500, 0.2, 1.6);
-  debugLine.x = x;
-  debugLine.y = y;
+  // const target = clamp(gestureData.zoomTarget - largestAbsolute(x, y) / 500, 0.2, 1.6);
+  // gestureData.zoomTarget = target
+  // // gestureData.preTranslateZoomTarget = target
 }
 
 function onPinch({ x, y }: Vector2) {
-  zoomTarget = clamp(zoomTarget - largestAbsolute(x, y) / 2, 0.2, 1.6);
-  debugLine.x = x;
-  debugLine.y = y;
+  // onWheel({ x, y })
 }
 
 function applyZoom() {
-  zoomFactor.value += (zoomTarget - zoomFactor.value) * 0.05;
+  gestureData.zoomFactor += (gestureData.zoomTarget - gestureData.zoomFactor) * 0.05;
 }
 
 function onMouseOver(windowId: string) {
@@ -371,7 +370,7 @@ function onMouseOver(windowId: string) {
     mouseData.cursorIcon =
       isMediaWindow(windowId) || window.open || apiData.selectedId !== windowId
         ? "eye-outline"
-        : "folder-open-outline";
+        : "expand-sharp";
   }
 }
 
@@ -383,10 +382,10 @@ function animate(): void {
   frameId = requestAnimationFrame(animate);
   applyZoom();
   translateToTargetPos();
-  tranformWindowsOnDrag(velocity, apiData.allWindows);
+  tranformWindowsOnDrag();
   // keepInBounds();
   // keepInBoundaries(translatePosition, effectiveBoundaries.value);
-  decreaseVelocity(translating ? dragFactor : 0);
+  // decreaseVelocity(gestureData.translating ? dragFactor : 0);
 }
 
 const minimapItems = computed(() =>
@@ -510,15 +509,15 @@ onMounted(async () => {
 
     }
 
-  gestures = new GestureHandler({
-    onStart,
-    onEnd,
-    onMove,
-    onTouch,
-    onWheel,
-    onPinch,
-    preventDefault: true,
-  });
+  // gestures = new GestureHandler({
+  //   onStart,
+  //   onEnd,
+  //   onMove,
+  //   onTouch,
+  //   onWheel,
+  //   onPinch,
+  //   preventDefault: true,
+  // });
 
   window.addEventListener("resize", onResize);
   window.addEventListener("keydown", onKeyDown);
@@ -530,10 +529,10 @@ onBeforeUnmount(() => {
   window.removeEventListener("resize", onResize);
   window.removeEventListener("keydown", onKeyDown);
   window.removeEventListener("keyup", onKeyUp);
-  translating.value = false;
-  if (gestures) {
-    gestures.destroy();
-  }
+  gestureData.translating = false;
+  // if (gestures) {
+  //   gestures.destroy();
+  // }
 });
 
 onBeforeRouteUpdate(onIndexEnter);

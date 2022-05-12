@@ -1,11 +1,20 @@
 import { Vector2 } from "@/utils/layout.types";
 import { defineStore } from "pinia";
+import { reactive } from "vue";
 
 export interface GestureProps {
   [k: string]: any;
   scrollPos: Vector2;
   targetScrollPos: Vector2;
   scrollMax: Vector2;
+  velocity: Vector2;
+  translating: boolean;
+  zoomTarget: number;
+  preTranslateZoomTarget: number;
+  zoomFactor: number;
+  dragDezooming: boolean;
+  MIN_MOVE_FACTOR: number;
+  DRAG_FACTOR: number;
 }
 
 export const useGestureData = defineStore("gestureData", {
@@ -13,6 +22,14 @@ export const useGestureData = defineStore("gestureData", {
     scrollPos: { x: 0, y: 0 },
     targetScrollPos: { x: 0, y: 0 },
     scrollMax: { x: 0, y: window.innerHeight },
+    velocity: { x: 0, y: 0 },
+    translating: false,
+    zoomTarget: window.innerWidth < 600 ? 0.8 : 0.6,
+    preTranslateZoomTarget: window.innerWidth < 600 ? 0.8 : 0.6,
+    zoomFactor: 1,
+    MIN_MOVE_FACTOR: 0.55,
+    DRAG_FACTOR: 0.9,
+    dragDezooming: false,
   }),
   getters: {},
   actions: {
@@ -47,5 +64,18 @@ export const useGestureData = defineStore("gestureData", {
         ...update,
       };
     },
+    applyZoom() {
+      this.zoomFactor += (this.zoomTarget - this.zoomFactor) * 0.05;
+    },
+    decreaseVelocity() {
+      const f = this.translating ? this.DRAG_FACTOR : 0;
+      this.velocity.x *= f;
+      this.velocity.y *= f;
+    },
   },
+});
+
+export const velocity = reactive<Vector2>({
+  x: 0,
+  y: 0,
 });

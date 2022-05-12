@@ -104,7 +104,7 @@
 
 <script setup lang="ts">
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
-import { onMounted, defineProps, computed } from "vue";
+import { onMounted, computed } from "vue";
 import FixedFrame from "@/components/FixedFrame.vue";
 
 import { px } from "@/utils/layout";

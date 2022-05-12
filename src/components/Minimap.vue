@@ -32,7 +32,6 @@ interface MinimapItem {
 interface MinimapProps {
   screenSize: ScreenDims;
   onSelect: (id: string | number) => void;
-  zoomFactor: { value: number };
 }
 
 interface MinimapItemProps {

@@ -1,7 +1,13 @@
 <template>
   <fixed-frame id="loader" class="dotted">
     <div id="loader__background"></div>
-    <h1>{{ Math.round(displayProgress) }}%</h1>
+    <div id="loader__progress__container">
+      <h1 id="loader__progress">
+        <div id="loader__progress__text">
+          {{ Math.round(displayProgress) }}%
+        </div>
+      </h1>
+    </div>
   </fixed-frame>
 </template>
 
@@ -10,63 +16,64 @@ import { watch, computed, ref, onMounted } from "vue";
 import gsap, { Power2 } from "gsap";
 import FixedFrame from "@/components/FixedFrame.vue";
 import { useApiData } from "@/stores/apiData";
+import {
+  hideLoaderText,
+  hideLoader,
+  transitionToTutorial,
+} from "@/utils/transition";
 
 const apiData = useApiData();
 
-const progress = computed(() =>
-  !apiData.indexEnterFinished
-    ? 0
-    : apiData.loaded
-    ? 100
-    : apiData.imgsPreloaded
-    ? 50
-    : 25
-);
+const displayProgress = ref<number>(apiData.loadingProgress);
 
-const displayProgress = ref<number>(progress.value);
-
-const onTweenComplete = () => {
-  if (progress.value === 100) {
-    const el = document.getElementById("loader");
-    gsap.to("#loader", {
-      opacity: 0,
-      duration: 0.6,
-      onComplete: () => {
+const onLoadingComplete = () => {
+  if (apiData.loadingProgress === 100) {
+    const loader = document.getElementById("loader");
+    if (loader) {
+      const hideElement = () => {
+        setTimeout(() => {
+          loader.style.pointerEvents = "none";
+          // loader.style.display = "none";
+        }, 400)
+      }
+      hideLoaderText(() => {
         apiData.loaderAnimationFinished = true;
-        if (el) {
-          el.style.pointerEvents = "none";
-          setTimeout(() => {
-            el.style.display = "none";
-          }, 1000);
+        if (apiData.tutorialFinished) {
+          hideLoader(hideElement);
+        } else {
+          transitionToTutorial(() => hideLoader(hideElement));
         }
-      },
-    });
+        // const el = document.getElementById("loader");
+        // if (el) {
+        //   el.style.pointerEvents = "none";
+        //   setTimeout(() => {
+        //     el.style.display = "none";
+        //   }, 1000);
+        // }
+      });
+    }
   }
 };
 
 onMounted(() => {
   if (apiData.loaderAnimationFinished) {
-    console.log("aaaa");
-    onTweenComplete();
+    onLoadingComplete();
   }
-
-})
-
+});
 
 watch(
-  () => progress.value,
+  () => apiData.loadingProgress,
   () => {
-    console.log("runs");
     gsap.to("#loader__background", {
-      scaleX: progress.value / 100,
+      scaleX: apiData.loadingProgress / 100,
       duration: 0.6,
       delay: 0.6,
       lazy: true,
       ease: Power2.easeInOut,
-      onComplete: onTweenComplete,
+      onComplete: onLoadingComplete,
     });
     gsap.to(displayProgress, {
-      value: progress.value,
+      value: apiData.loadingProgress,
       duration: 0.6,
       delay: 0.6,
       ease: Power2.easeInOut,
@@ -77,22 +84,27 @@ watch(
 
 <style lang="sass">
 #loader
-  @include fl-center
   background-color: $c-black
   pointer-events: all
+  opacity: 1
+  @include fl-center
 
-  h1
-    mix-blend-mode: difference
-    position: relative
-    z-index: 1
+  #loader__progress__container
+    @include fl-center
+    position: absolute
+    top: 0
+    left: 0
+    bottom: 0
+    right: 0
+
+    h1
+      color: $c-primary
+      z-index: 1
+      overflow: hidden
 
 #loader__background
-  position: absolute
-  top: 0
-  left: 0
-  right: 0
-  bottom: 0
   width: 100%
+  height: 100%
   background-color: $c-grey-6
   transform-origin: center left
   transform: scaleX(0)

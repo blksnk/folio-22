@@ -52,10 +52,13 @@ $b-style: $b-width solid $c-grey-6
   transform: scaleX(1)
   transform-origin: center left
 
-.dotted
+@mixin dotted
   background-image: radial-gradient($c-grey-2 1px, transparent 0)
   background-size: 24px 24px
   background-position: center center
+
+.dotted
+  @include dotted
 
 .flag
   height: 18px
