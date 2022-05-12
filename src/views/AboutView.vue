@@ -8,7 +8,7 @@
       <h2>Creative Developer</h2>
       <h2 class="tab">& UX/UI Designer</h2>
       <p class="description">
-        I am an junior <em>art director</em> and freelance creative
+        I am a junior <em>art director</em> and freelance creative
         <em>web developer</em> since 2019. I was born West Palm Beach, FL and
         now live in and work from Paris, France.
       </p>

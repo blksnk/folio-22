@@ -4,7 +4,7 @@
     <div id="loader__progress__container">
       <h1 id="loader__progress">
         <div id="loader__progress__text">
-          {{ Math.round(displayProgress) }}%
+          {{ Math.round(displayProgress) }}
         </div>
       </h1>
     </div>
@@ -100,6 +100,7 @@ watch(
       color: $c-primary
       z-index: 1
       overflow: hidden
+      font-weight: 700
 
 #loader__background
   width: 100%
