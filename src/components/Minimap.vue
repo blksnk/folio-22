@@ -25,18 +25,18 @@ interface MinimapItem {
   height: number;
   width: number;
   selected: boolean;
-  id: string | number;
+  id: string;
   hidden: boolean;
 }
 
 interface MinimapProps {
   screenSize: ScreenDims;
-  onSelect: (id: string | number) => void;
+  onSelect: (id: string) => void;
 }
 
 interface MinimapItemProps {
   style: string;
-  id: string | number;
+  id: string;
   selected: boolean;
   hidden: boolean;
 }

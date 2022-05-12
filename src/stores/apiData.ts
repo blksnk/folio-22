@@ -22,7 +22,7 @@ export const useApiData = defineStore("apiData", {
     imgsPreloaded: boolean;
     isMobile: boolean;
     baseWindowSize: Vector2;
-    selectedId: string | number;
+    selectedId: string;
     loaderAnimationFinished: boolean;
     indexEnterFinished: boolean;
     tutorialFinished: boolean;
@@ -41,7 +41,7 @@ export const useApiData = defineStore("apiData", {
       x: window.innerWidth < 600 ? 300 : 500,
       y: window.innerWidth < 600 ? 300 : 500,
     },
-    selectedId: 0,
+    selectedId: "0",
     loaderAnimationFinished: false,
     indexEnterFinished: false,
     tutorialFinished: false,
@@ -73,7 +73,7 @@ export const useApiData = defineStore("apiData", {
         apiDataWorker.onmessage = (e) => {
           if (e.data?.projects) {
             this.projects = e.data.projects;
-            this.selectedId = this.projects[0]?.uid || 0;
+            this.selectedId = this.projects[0]?.uid || "0";
             this.loadingProgress = 25;
             windowDataWorker.postMessage({
               baseWindowSize: JSON.stringify(baseWindowSize),
@@ -141,6 +141,11 @@ export const useApiData = defineStore("apiData", {
       this.projectWindows.forEach((window) => {
         window.hidden = false;
         window.open = false;
+      });
+    },
+    setWindowSelection(selectedId: string) {
+      this.allWindows.forEach((window) => {
+        window.selected = window.id === selectedId;
       });
     },
   },

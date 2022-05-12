@@ -1,4 +1,5 @@
-import { Vector2 } from "@/utils/layout.types";
+import { getScreenDims } from "@/utils/layout";
+import { Vector2, ScreenDims } from "@/utils/layout.types";
 import { defineStore } from "pinia";
 import { reactive } from "vue";
 
@@ -15,6 +16,7 @@ export interface GestureProps {
   dragDezooming: boolean;
   MIN_MOVE_FACTOR: number;
   DRAG_FACTOR: number;
+  screenSize: ScreenDims;
 }
 
 export const useGestureData = defineStore("gestureData", {
@@ -30,6 +32,7 @@ export const useGestureData = defineStore("gestureData", {
     MIN_MOVE_FACTOR: 0.55,
     DRAG_FACTOR: 0.9,
     dragDezooming: false,
+    screenSize: getScreenDims(),
   }),
   getters: {},
   actions: {

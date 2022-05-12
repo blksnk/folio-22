@@ -1,11 +1,10 @@
 <script lang="ts" setup>
-// import { RouterView } from "vue-router";
+import { RouterView } from "vue-router";
 import { onMounted, ref, reactive, onBeforeUnmount } from "vue";
-// import { useApiData } from "@/stores/apiData";
-// import { loadApi } from "./utils/api";
+import { debounce } from 'lodash'
 import { Vector2, ScreenDims } from "@/utils/layout.types";
 import { getScreenDims } from "@/utils/layout";
-import { clamp, largestAbsolute } from "./utils/math";
+import { clamp, largestAbsolute, isBetween, getScaleCoef } from "./utils/math";
 import GestureHandler from "./utils/gesture";
 
 import { useApiData } from "@/stores/apiData";
@@ -23,13 +22,6 @@ const mouseData = useMouseData();
 const apiData = useApiData();
 const gestureData = useGestureData();
 
-// cursor vars
-
-const mousePos = reactive<Vector2>({ x: 0, y: 0 });
-const targetMousePos = reactive<Vector2>({ x: 0, y: 0 });
-const mouseDown = ref<boolean>(false);
-
-const SCROLL_MULTIPLIER = apiData.isMobile ? 1.5 : 1;
 // cursor handling
 
 function translateCursor() {
@@ -40,6 +32,8 @@ function translateCursor() {
 }
 
 // scroll handling
+const SCROLL_MULTIPLIER = apiData.isMobile ? 1.5 : 1;
+
 function updateScrollPos() {
   gestureData.scrollPos.x +=
     (gestureData.targetScrollPos.x - gestureData.scrollPos.x) * 0.09;
@@ -92,7 +86,7 @@ const onMove = (fromPointer: Vector2, delta: Vector2, fromTrackpad?: boolean) =>
   }
 
   if (mouseData.mouseDown) {
-    gestureData.setTargetScrollPos({x: -delta.x * 1.5, y: -delta.y * 1.5});
+    gestureData.setTargetScrollPos({ x: -delta.x * 1.5, y: -delta.y * 1.5 });
   }
 };
 
@@ -131,16 +125,18 @@ function onWheel({ x, y }: Vector2) {
 
 // resize event handler
 
-const onResize = () => {
-  const { x, y } = getScreenDims();
-  apiData.isMobile = x < 600;
+const onResize = debounce(() => {
+  gestureData.screenSize = getScreenDims();
+  apiData.isMobile = gestureData.screenSize.x < 600;
   apiData.baseWindowSize = {
-    x: x < 600 ? 250 : 500,
-    y: y < 600 ? 250 : 500,
+    x: gestureData.screenSize.x < 600 ? 250 : 500,
+    y: gestureData.screenSize.y < 600 ? 250 : 500,
   };
-};
+}, 500);
 
+// window handling
 
+const minMoveFactor = 0.55
 
 function decreaseVelocity() {
   const f = gestureData.translating ? gestureData.DRAG_FACTOR : 0;
@@ -158,49 +154,117 @@ function decreaseVelocity() {
   }
 }
 
-// main animation loop. runs every frame.
+function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
+  return Math.max(
+    Math.abs(gestureData.screenSize.center[vectorName] - value) / gestureData.screenSize[vectorName] +
+    minMoveFactor,
+    0
+  );
+}
 
-const animateLoop = () => {
-  translateCursor();
-  updateScrollPos();
-  decreaseVelocity();
-  frameId = requestAnimationFrame(animateLoop);
-};
+  function tranformWindowsOnDrag(): void {
+    const zoom = gestureData.zoomFactor;
+    const zoomInvert = 1 - zoom;
 
-onMounted(() => {
-  apiData.load(apiData.baseWindowSize);
+    apiData.allWindows.forEach((window) => {
+      const { x, y } = window.transform;
 
-  gestures = new GestureHandler({
-    onStart,
-    onEnd,
-    onMove,
-    onTouch,
-    onWheel,
-    onWheel_Native,
-    onPinch: onWheel,
-    preventDefault: true,
+      const offsetFromCenter: Vector2 = {
+        x: getOffsetFromCenterCoef(x, "x"),
+        y: getOffsetFromCenterCoef(y, "y"),
+      };
+      const scale = getScaleCoef(offsetFromCenter);
+      // select window if centered
+      if (
+        isBetween(offsetFromCenter.x, 0.5, 0.6) &&
+        isBetween(offsetFromCenter.y, 0.5, 0.6) &&
+        !gestureData.translating &&
+        !window.hidden &&
+        // !isMediaWindow(window.id)
+        apiData.selectedId !== window.id
+      ) {
+        apiData.setWindowSelection(window.id);
+      }
+      window.transformPreZoom.x += velocity.x * (2 - zoom); // * offsetFromCenter.x;
+      window.transformPreZoom.y += velocity.y * (2 - zoom); //* offsetFromCenter.y;
+      window.targetTransform.x =
+        window.transformPreZoom.x * zoom + gestureData.screenSize.center.x * zoomInvert;
+      window.targetTransform.y =
+        window.transformPreZoom.y * zoom + gestureData.screenSize.center.y * zoomInvert;
+      window.targetTransform.scale = scale * zoom;
+    });
+  }
+
+function translateToTargetPos() {
+  if (apiData.selectedWindow && gestureData.translating) {
+    const { x, y } = apiData.selectedWindow.transform;
+    const dstToTarget = {
+      x: gestureData.screenSize.center.x - x,
+      y: gestureData.screenSize.center.y + 24 - y,
+    };
+
+    const needsTranslate =
+      Math.max(Math.abs(dstToTarget.x), Math.abs(dstToTarget.y)) > 1;
+
+    if (needsTranslate) {
+      velocity.x += dstToTarget.x * 0.005;
+      velocity.y += (dstToTarget.y * 0.005) / gestureData.screenSize.ratio;
+    } else if (gestureData.translating) {
+      console.log('reset translating', apiData.selectedId)
+      gestureData.translating = false;
+      apiData.setWindowSelection(apiData.selectedId);
+    }
+  }
+}
+
+  // main animation loop. runs every frame.
+
+  const animateLoop = () => {
+    translateCursor();
+
+    gestureData.applyZoom()
+    translateToTargetPos()
+    tranformWindowsOnDrag()
+    updateScrollPos();
+    decreaseVelocity();
+
+    frameId = requestAnimationFrame(animateLoop);
+  };
+
+  onMounted(() => {
+    apiData.load(apiData.baseWindowSize);
+
+    gestures = new GestureHandler({
+      onStart,
+      onEnd,
+      onMove,
+      onTouch,
+      onWheel,
+      onWheel_Native,
+      onPinch: onWheel,
+      preventDefault: true,
+    });
+
+    window.addEventListener("resize", onResize);
+    // window.addEventListener("wheel", onWheel);
+
+    frameId = requestAnimationFrame(animateLoop);
   });
 
-  window.addEventListener("resize", onResize);
-  // window.addEventListener("wheel", onWheel);
-
-  animateLoop();
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("resize", onResize);
-  // window.removeEventListener("wheel", onWheel);
-  cancelAnimationFrame(frameId);
-  if (gestures) {
-    gestures.destroy();
-  }
-});
+  onBeforeUnmount(() => {
+    window.removeEventListener("resize", onResize);
+    // window.removeEventListener("wheel", onWheel);
+    cancelAnimationFrame(frameId);
+    if (gestures) {
+      gestures.destroy();
+    }
+  });
 </script>
 
 <template>
   <router-view v-if="apiData.loaded && apiData.imgsPreloaded"> </router-view>
   <!-- <Tutorial/> -->
-  <Loader/>
+  <Loader />
   <NavBar />
   <MouseCursor v-if="!apiData.isMobile" />
 </template>

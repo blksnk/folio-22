@@ -130,7 +130,7 @@ function tranformWindowsOnDrag(): void {
       // !isMediaWindow(window.id)
       apiData.selectedId !== window.id
     ) {
-      setWindowSelection(window.id);
+      apiData.setWindowSelection(window.id);
     }
     window.transformPreZoom.x += velocity.x * (2 - zoom); // * offsetFromCenter.x;
     window.transformPreZoom.y += velocity.y * (2 - zoom); //* offsetFromCenter.y;
@@ -280,7 +280,7 @@ const onWindowClick = (targetId: string, ...args: unknown[]) => {
 }
 
 const selectWindow = (
-  targetId: number | string,
+  targetId: string,
   forceShowCursor = false,
   event?: MouseEvent,
   zt?: number
@@ -299,7 +299,7 @@ const selectWindow = (
     apiData.selectedId = targetId;
     gestureData.translating = true;
     
-    setWindowSelection(targetId);
+    apiData.setWindowSelection(targetId);
     // if (!isMediaWindow(String(targetId))) {
     //   mouseData.showCursor = true;
     //   if (!window.open) {
@@ -340,7 +340,7 @@ function translateToTargetPos() {
     } else if (gestureData.translating) {
       console.log('reset translating', apiData.selectedId)
       gestureData.translating = false;
-      setWindowSelection(apiData.selectedId);
+      apiData.setWindowSelection(apiData.selectedId);
     }
   }
 }
@@ -380,9 +380,9 @@ function onMouseLeave() {
 
 function animate(): void {
   frameId = requestAnimationFrame(animate);
-  applyZoom();
-  translateToTargetPos();
-  tranformWindowsOnDrag();
+  // applyZoom();
+  // translateToTargetPos();
+  // tranformWindowsOnDrag();
   // keepInBounds();
   // keepInBoundaries(translatePosition, effectiveBoundaries.value);
   // decreaseVelocity(gestureData.translating ? dragFactor : 0);
@@ -499,13 +499,13 @@ const onKeyUp = (e: KeyboardEvent) => {
 onMounted(async () => {
   setInitalBoundaries();
     if(!apiData.loaderAnimationFinished) {
-      animate();
+      // animate();
       setTimeout(() => {
         apiData.indexEnterFinished = true
       }, 1000)
     } else {
       await onIndexEnter();
-      animate();
+      // animate();
 
     }
 
@@ -525,14 +525,14 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  // cancelAnimationFrame(frameId);
+  cancelAnimationFrame(frameId);
   window.removeEventListener("resize", onResize);
   window.removeEventListener("keydown", onKeyDown);
   window.removeEventListener("keyup", onKeyUp);
   gestureData.translating = false;
-  // if (gestures) {
-  //   gestures.destroy();
-  // }
+  if (gestures) {
+    gestures.destroy();
+  }
 });
 
 onBeforeRouteUpdate(onIndexEnter);
