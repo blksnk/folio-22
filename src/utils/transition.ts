@@ -129,13 +129,29 @@ export const hideLoader = (onComplete: () => void) => {
 export const transitionToTutorial = (onComplete: () => void) => {
   const bg = document.getElementById("loader__background");
   if (bg) {
-    const size = window.innerWidth < 600 ? 150 : 250;
+    const size = (window.innerWidth < 600 ? 150 : 250) * 0.6;
     gsap.to(bg, {
       width: size,
       height: size,
+      borderRadius: 8,
       duration: 0.6,
       ease: Power2.easeInOut,
       onComplete,
     });
   }
+};
+
+export const hideTutorial = (onComplete?: () => void) => {
+  const tl = gsap.timeline({
+    onComplete,
+  });
+  tl.to("#tutorial__box", {
+    scale: 0,
+    duration: 0.6,
+    ease: Power2.easeIn,
+  });
+  tl.to("#tutorial", {
+    opacity: 0,
+    duration: 1.2,
+  });
 };

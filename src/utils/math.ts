@@ -19,3 +19,6 @@ export function getScaleCoef(offset: Vector2): number {
 }
 
 export const isNegative = (n: number): boolean => n - Math.abs(n) > 0;
+
+export const diffLessThan = (a: number, b: number, diff: number): boolean =>
+  Math.abs(a - b) < diff;

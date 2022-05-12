@@ -79,9 +79,9 @@ const onMove = (fromPointer: Vector2, delta: Vector2, fromTrackpad?: boolean) =>
   if (mouseData.mouseDown || fromTrackpad) {
     gestureData.translating = false;
 
-    velocity.x = delta.x * (2 - gestureData.zoomFactor);
+    velocity.x = delta.x * (3 - gestureData.zoomFactor);
     if (!apiData.isWindowOpen) {
-      velocity.y = delta.y * (2 - gestureData.zoomFactor);
+      velocity.y = delta.y * (3 - gestureData.zoomFactor);
     }
   }
 
@@ -119,7 +119,7 @@ const onWheel_Native = ({ x, y }: Vector2) => {
 };
 
 function onWheel({ x, y }: Vector2) {
-  const target = clamp(gestureData.zoomTarget - largestAbsolute(x, y) / 350, 0.2, 1.6);
+  const target = clamp(gestureData.zoomTarget - largestAbsolute(x, y) / 350, 0.2, 2.5);
   gestureData.zoomTarget = target
 }
 
@@ -263,8 +263,10 @@ function translateToTargetPos() {
 
 <template>
   <router-view v-if="apiData.loaded && apiData.imgsPreloaded"> </router-view>
-  <!-- <Tutorial/> -->
-  <Loader />
+  <transition name="fade">
+    <Tutorial v-if="apiData.showTutorial"/>
+  </transition>
+  <Loader v-if="apiData.showLoader"/>
   <NavBar />
   <MouseCursor v-if="!apiData.isMobile" />
 </template>

@@ -31,13 +31,12 @@ const onLoadingComplete = () => {
     const loader = document.getElementById("loader");
     if (loader) {
       const hideElement = () => {
+        apiData.loaderAnimationFinished = true
         setTimeout(() => {
-          loader.style.pointerEvents = "none";
-          loader.style.display = "none";
+          apiData.showLoader = false
         }, 400)
       }
       hideLoaderText(() => {
-        apiData.loaderAnimationFinished = true;
         if (apiData.tutorialFinished) {
           hideLoader(hideElement);
         } else {

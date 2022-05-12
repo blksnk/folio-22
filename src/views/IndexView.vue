@@ -240,7 +240,7 @@ const selectWithKeyboard = (direction: string | ArrowDirection) => {
           }
           break;
         case ArrowDirection.ArrowRight:
-          if (selectedIndex <= windows.length - 1) {
+          if (selectedIndex < windows.length - 1) {
             newIndex = selectedIndex + 1;
           }
           break;

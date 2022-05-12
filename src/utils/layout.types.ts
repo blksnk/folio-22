@@ -1,7 +1,7 @@
 import { ImageFormats, uid, ProjectTag } from "@/utils/api.types";
 
 export interface Vector2 {
-  [key: string]: number | Vector2;
+  [key: string]: number;
   x: number;
   y: number;
 }
@@ -27,7 +27,10 @@ export interface WindowPosition extends Boundary {
   height: number;
 }
 
-export interface ScreenDims extends Vector2 {
+export interface ScreenDims {
+  [key: string]: number | Vector2;
+  x: number;
+  y: number;
   center: Vector2;
   ratio: number;
 }

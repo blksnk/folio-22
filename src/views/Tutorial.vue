@@ -6,29 +6,36 @@
       <div class="tutorial__target"></div>
     </div>
 
-    <p id="tutorial__message">
-      {{ message }}
-    </p>
+    <transition name="fade">
+      <p id="tutorial__message">
+        {{ message }}
+      </p>
+    </transition>
   </fixed-frame>
 </template>
 
 <script lang="ts" setup>
-import { ref, computed, onMounted, onBeforeUnmount, watchEffect } from "vue";
+import {
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  reactive,
+  watchEffect,
+} from "vue";
 import { Vector2, Transform } from "@/utils/layout.types";
 import { createTransformString } from "@/utils/layout";
 import FixedFrame from "@/components/FixedFrame.vue";
 import { useApiData } from "@/stores/apiData";
 import { useGestureData, velocity } from "@/stores/gestureData";
-import GestureHandler from "@/utils/gesture";
+import { clamp, diffLessThan } from "@/utils/math";
 import { storeToRefs } from "pinia";
+import { hideTutorial } from "@/utils/transition";
 
 const apiData = useApiData();
-const gestureData = useGestureData()
+const gestureData = useGestureData();
 
-const gestureDataRefs = storeToRefs(gestureData)
-
-let frameId = 0
-
+let frameId = 0;
 
 type StepTarget = { scale: number } | Vector2;
 
@@ -39,23 +46,45 @@ enum TargetCheckProp {
 }
 
 type Step = {
+  id: number;
   message: string;
   complete: boolean;
   target: Transform;
-  targetCheck: TargetCheckProp | TargetCheckProp[];
+  targetCheck: TargetCheckProp[];
 };
 
-const steps: Step[] = [
+const steps = ref<Step[]>([
   {
-    message: "test message",
+    id: 0,
+    message:
+      "Drag with your mouse or use finger gestures to navigate.\n\nMove the box to the target.",
     complete: false,
-    target: { x: 0, y: 0, scale: 1 },
+    target: { x: window.innerWidth / 4, y: 0, scale: 0.4 },
     targetCheck: [TargetCheckProp.x, TargetCheckProp.y],
   },
-];
+  {
+    id: 1,
+    message:
+      "Drag with your mouse or use finger gestures to navigate.\n\nMove the box to the target.",
+    complete: false,
+    target: { x: -window.innerWidth / 8, y: -100, scale: 0.4 },
+    targetCheck: [TargetCheckProp.x, TargetCheckProp.y],
+  },
+  {
+    id: 2,
+    message: "Zoom in and out by pinching or using your mouse wheel.",
+    complete: false,
+    target: { x: 0, y: 0, scale: 1.8 },
+    targetCheck: [TargetCheckProp.scale],
+  },
+]);
 
 const currentStep = computed<Step | undefined>(() =>
-  steps.find(({ complete }) => !complete)
+  steps.value.find(({ complete }) => !complete)
+);
+
+const tutorialFinished = computed<boolean>(() =>
+  steps.value.every(({ complete }) => complete)
 );
 
 const message = computed<string>(() => currentStep.value?.message || "");
@@ -71,43 +100,112 @@ const size = computed<Vector2>(() => ({
   y: apiData.baseWindowSize.y / 2,
 }));
 
-const centerOffset = ref<Vector2>({
-  x: window.innerWidth / 2 - size.value.x / 2 - (apiData.isMobile ? 12 : 22),
-  y: window.innerHeight / 2 - size.value.y / 2 - (apiData.isMobile ? 42 : 47),
+const getCenterOffset = (boxSize: Vector2): Vector2 => ({
+  x: window.innerWidth / 2 - boxSize.x / 2 - (apiData.isMobile ? 12 : 22),
+  y: window.innerHeight / 2 - boxSize.y / 2 - (apiData.isMobile ? 42 : 47),
 });
 
-const boxTransform = ref<Transform>({ x: 0, y: 0, scale: 1 });
+const boxTransform = reactive<Transform>({ x: 0, y: 0, scale: gestureData.zoomFactor });
 
-const offsetPosition = (source: Transform): Transform => ({
-  x: centerOffset.value.x + source.x,
-  y: centerOffset.value.y + source.y,
-  scale: source.scale,
+const offsetPosition = (source: Transform): Transform => {
+  const centerOffset = getCenterOffset(size.value);
+  return {
+    x: centerOffset.x + source.x,
+    y: centerOffset.y + source.y,
+    scale: source.scale,
+  };
+};
+
+const boundaries = {
+  xMin: (-size.value.x * gestureData.zoomFactor) / 2 + 44,
+  xMax: window.innerWidth - size.value.x * gestureData.zoomFactor,
+};
+
+const boxPosition = computed<Transform>(() => {
+  const centerOffset = getCenterOffset(size.value);
+  return {
+    x: clamp(centerOffset.x + boxTransform.x, boundaries.xMin, boundaries.xMax),
+    y: centerOffset.y + boxTransform.y,
+    scale: boxTransform.scale,
+  };
 });
-
-const boxPosition = computed<Transform>(() => ({
-  x: centerOffset.value.x + boxTransform.value.x,
-  y: centerOffset.value.y + boxTransform.value.y,
-  scale: boxTransform.value.scale,
-}));
 
 const boxStyle = computed(() => ({
   transform: createTransformString(boxPosition.value),
 }));
 
-const animate = () => {
-  console.log(velocity.x)
-  boxTransform.value.x += velocity.x
-  boxTransform.value.y += velocity.y
-  frameId = requestAnimationFrame(animate)
-}
+const isTargetReached = () => {
+  const matching = currentStep.value?.targetCheck.every((prop) =>
+    prop === TargetCheckProp.scale
+      ? diffLessThan(
+          boxTransform[prop],
+          currentStep.value?.target[prop] || 1,
+          0.6
+        )
+      : diffLessThan(
+          boxTransform[prop],
+          currentStep.value?.target[prop] || 0,
+          100
+        )
+  );
+  return matching;
+};
 
-onMounted(() => {
-  frameId = requestAnimationFrame(animate)
-})
+const transitionToContent = () => {
+  console.log("runs");
+  gestureData.zoomTarget = 0.6
+  hideTutorial(() => {
+        setTimeout(() => {
+          apiData.showTutorial = false
+        }, 400)
+  })
+};
 
-onBeforeUnmount(() => {
-  cancelAnimationFrame(frameId)
-})
+const advanceStep = () => {
+  if (
+    isTargetReached() &&
+    currentStep.value &&
+    !currentStep.value?.complete
+  ) {
+    (
+      steps.value?.find(({ id }) => id === currentStep.value?.id) || {
+        complete: false,
+      }
+    ).complete = true;
+  }
+};
+
+watchEffect(() => {
+  if (apiData.loaderAnimationFinished && !tutorialFinished.value) {
+    boxTransform.x += velocity.x;
+    boxTransform.y += velocity.y;
+    boxTransform.scale = gestureData.zoomFactor;
+    advanceStep();
+  }
+});
+
+
+watchEffect(() => {
+  if (tutorialFinished.value) {
+    apiData.tutorialFinished = true
+    transitionToContent();
+  }
+});
+
+// const animate = () => {
+//   console.log(velocity.x)
+//   boxTransform.value.x += velocity.x
+//   boxTransform.value.y += velocity.y
+//   frameId = requestAnimationFrame(animate)
+// }
+
+// onMounted(() => {
+//   frameId = requestAnimationFrame(animate)
+// })
+
+// onBeforeUnmount(() => {
+//   cancelAnimationFrame(frameId)
+// })
 </script>
 
 <style lang="sass">
@@ -119,10 +217,33 @@ onBeforeUnmount(() => {
   100%
     transform: scale(1)
 
+@keyframes glow
+  0%
+    transform: scale(1)
+    opacity: 1
+  100%
+    transform: scale(2)
+    opacity: 0
 
 @mixin appearing
   animation: grow .6s ease-out 0s
   transform-origin: center center
+
+@mixin glowing
+  &:before
+    content: ""
+    position: absolute
+    top: 0
+    left: 0
+    bottom: 0
+    right: 0
+    border-radius: 50%
+    z-index: 1
+    translate-origin: center
+    opacity: 1
+    border: 1px solid $c-grey-3
+
+    animation: glow 2s ease-out 0s infinite
 
 
 #tutorial
@@ -133,24 +254,28 @@ onBeforeUnmount(() => {
   position: absolute
   transform-origin: center
 
-
-#tutorial__box
+#tutorial__box, .tutorial__target
   width: 250px
   height: 250px
-  background: $c-grey-6
 
   @media screen and (max-width: 600px)
     height: 150px
     width: 150px
 
+#tutorial__box
+  background: $c-grey-6
+  border-radius: $b-radius
+
+.tutorial__target__container
+  transition: transform 1s ease-in-out 0s
 
 .tutorial__target
   @include appearing
   @include dotted
+  @include glowing
   border: 1px solid $c-grey-3
-  transition: border-color .2s linear
-  height: 100px
-  width: 100px
+  // height: 100px
+  // width: 100px
   border-radius: 50%
 
   &.reached

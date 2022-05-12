@@ -25,6 +25,8 @@ export const useApiData = defineStore("apiData", {
     selectedId: string;
     loaderAnimationFinished: boolean;
     tutorialFinished: boolean;
+    showTutorial: boolean;
+    showLoader: boolean;
     loadingProgress: number;
     zoomTarget: number;
     preTranslateZoomTarget: number;
@@ -43,6 +45,8 @@ export const useApiData = defineStore("apiData", {
     selectedId: "0",
     loaderAnimationFinished: false,
     tutorialFinished: false,
+    showTutorial: true,
+    showLoader: true,
     loadingProgress: 0,
     zoomTarget: window.innerWidth < 600 ? 0.8 : 0.6,
     preTranslateZoomTarget: window.innerWidth < 600 ? 0.8 : 0.6,

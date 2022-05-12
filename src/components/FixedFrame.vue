@@ -119,7 +119,7 @@ const onClick = () => emit("close");
       transition: opacity .3s linear 0s
 
     .tag
-      @include f-project-title__light
+      @include f-window-tag
       border: 1px solid $c-grey-1
       padding: 3px 6px
       color: $c-grey-1
