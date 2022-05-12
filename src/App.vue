@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import { RouterView } from "vue-router";
-import { onMounted, ref, reactive, onBeforeUnmount } from "vue";
-import { debounce } from 'lodash'
+import { RouterView, useRoute } from "vue-router";
+import { onMounted, ref, computed, onBeforeUnmount } from "vue";
+import { debounce } from "lodash";
 import { Vector2, ScreenDims } from "@/utils/layout.types";
 import { getScreenDims } from "@/utils/layout";
 import { clamp, largestAbsolute, isBetween, getScaleCoef } from "./utils/math";
-import GestureHandler from "./utils/gesture";
+import GestureHandler, { VectorArgFunc, onMoveFn } from "./utils/gesture";
 
 import { useApiData } from "@/stores/apiData";
 import { useMouseData } from "@/stores/mouseData";
@@ -21,6 +21,8 @@ let frameId = 0;
 const mouseData = useMouseData();
 const apiData = useApiData();
 const gestureData = useGestureData();
+
+const route = useRoute();
 
 // cursor handling
 
@@ -51,7 +53,11 @@ const onStart = (vec: Vector2) => {
   mouseData.targetMousePos.x = vec.x;
   mouseData.targetMousePos.y = vec.y;
   mouseData.mouseDown = true;
-  if (!gestureData.translating && !apiData.isWindowOpen && !gestureData.dragDezooming) {
+  if (
+    !gestureData.translating &&
+    !apiData.isWindowOpen &&
+    !gestureData.dragDezooming
+  ) {
     setTimeout(() => {
       if (!gestureData.dragDezooming && mouseData.mouseDown) {
         gestureData.dragDezooming = true;
@@ -72,16 +78,23 @@ const onEnd = () => {
   mouseData.mouseDown = false;
 };
 
-const onMove = (fromPointer: Vector2, delta: Vector2, fromTrackpad?: boolean) => {
+const onMove = (
+  fromPointer: Vector2,
+  delta: Vector2,
+  fromTrackpad?: boolean
+) => {
   mouseData.targetMousePos.x = fromPointer.x;
   mouseData.targetMousePos.y = fromPointer.y;
 
   if (mouseData.mouseDown || fromTrackpad) {
-    gestureData.translating = false;
+    if (route.path === "/index" || apiData.showTutorial) {
+      console.log("onMove", route.path, apiData.showTutorial);
+      gestureData.translating = false;
 
-    velocity.x = delta.x * (3 - gestureData.zoomFactor);
-    if (!apiData.isWindowOpen) {
-      velocity.y = delta.y * (3 - gestureData.zoomFactor);
+      velocity.x = delta.x * (3 - gestureData.zoomFactor);
+      if (!apiData.isWindowOpen) {
+        velocity.y = delta.y * (3 - gestureData.zoomFactor);
+      }
     }
   }
 
@@ -95,7 +108,7 @@ const onTouch = (positions: Vector2[]) => {
     mouseData.isTouch = true;
   }
   if (positions.length === 1) {
-    onMove(
+    onMoveGuarded.value(
       { x: 0, y: 0 },
       {
         x: positions[0].x - mouseData.lastMousePos.x,
@@ -119,9 +132,33 @@ const onWheel_Native = ({ x, y }: Vector2) => {
 };
 
 function onWheel({ x, y }: Vector2) {
-  const target = clamp(gestureData.zoomTarget - largestAbsolute(x, y) / 350, 0.2, 2.5);
-  gestureData.zoomTarget = target
+  if (
+    route.path === "/index" ||
+    (apiData.showTutorial && !apiData.tutorialFinished)
+  ) {
+    const target = clamp(
+      gestureData.zoomTarget - largestAbsolute(x, y) / 350,
+      0.2,
+      2.5
+    );
+    console.log(target);
+    gestureData.zoomTarget = target;
+  }
 }
+
+// route guarded event listeners
+
+const onWheelGuarded = computed<VectorArgFunc>(() =>
+  route.path === "/index" || apiData.showTutorial
+    ? onWheel
+    : (vec: Vector2, delta?: Vector2) => null
+);
+
+const onMoveGuarded = computed<onMoveFn>(() =>
+  route.path === "/index" || apiData.showTutorial
+    ? onMove
+    : (vec: Vector2, delta: Vector2, fromTrackpad?: boolean) => null
+);
 
 // resize event handler
 
@@ -136,64 +173,63 @@ const onResize = debounce(() => {
 
 // window handling
 
-const minMoveFactor = 0.55
+const minMoveFactor = 0.55;
 
 function decreaseVelocity() {
   const f = gestureData.translating ? gestureData.DRAG_FACTOR : 0;
   velocity.x *= gestureData.DRAG_FACTOR;
   velocity.y *= gestureData.DRAG_FACTOR;
-  if (
-    Math.abs(velocity.x) < 0.000001
-  ) {
+  if (Math.abs(velocity.x) < 0.000001) {
     velocity.x = 0;
   }
-  if (
-    Math.abs(velocity.y) < 0.000001
-  ) {
+  if (Math.abs(velocity.y) < 0.000001) {
     velocity.y = 0;
   }
 }
 
 function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   return Math.max(
-    Math.abs(gestureData.screenSize.center[vectorName] - value) / gestureData.screenSize[vectorName] +
-    minMoveFactor,
+    Math.abs(gestureData.screenSize.center[vectorName] - value) /
+      gestureData.screenSize[vectorName] +
+      minMoveFactor,
     0
   );
 }
 
-  function tranformWindowsOnDrag(): void {
-    const zoom = gestureData.zoomFactor;
-    const zoomInvert = 1 - zoom;
+function tranformWindowsOnDrag(): void {
+  const zoom = gestureData.zoomFactor;
+  const zoomInvert = 1 - zoom;
 
-    apiData.allWindows.forEach((window) => {
-      const { x, y } = window.transform;
+  apiData.allWindows.forEach((window) => {
+    const { x, y } = window.transform;
 
-      const offsetFromCenter: Vector2 = {
-        x: getOffsetFromCenterCoef(x, "x"),
-        y: getOffsetFromCenterCoef(y, "y"),
-      };
-      const scale = getScaleCoef(offsetFromCenter);
-      // select window if centered
-      if (
-        isBetween(offsetFromCenter.x, 0.5, 0.6) &&
-        isBetween(offsetFromCenter.y, 0.5, 0.6) &&
-        !gestureData.translating &&
-        !window.hidden &&
-        // !isMediaWindow(window.id)
-        apiData.selectedId !== window.id
-      ) {
-        apiData.setWindowSelection(window.id);
-      }
-      window.transformPreZoom.x += velocity.x * (2 - zoom); // * offsetFromCenter.x;
-      window.transformPreZoom.y += velocity.y * (2 - zoom); //* offsetFromCenter.y;
-      window.targetTransform.x =
-        window.transformPreZoom.x * zoom + gestureData.screenSize.center.x * zoomInvert;
-      window.targetTransform.y =
-        window.transformPreZoom.y * zoom + gestureData.screenSize.center.y * zoomInvert;
-      window.targetTransform.scale = scale * zoom;
-    });
-  }
+    const offsetFromCenter: Vector2 = {
+      x: getOffsetFromCenterCoef(x, "x"),
+      y: getOffsetFromCenterCoef(y, "y"),
+    };
+    const scale = getScaleCoef(offsetFromCenter);
+    // select window if centered
+    if (
+      isBetween(offsetFromCenter.x, 0.5, 0.6) &&
+      isBetween(offsetFromCenter.y, 0.5, 0.6) &&
+      !gestureData.translating &&
+      !window.hidden &&
+      // !isMediaWindow(window.id)
+      apiData.selectedId !== window.id
+    ) {
+      apiData.setWindowSelection(window.id);
+    }
+    window.transformPreZoom.x += velocity.x * (2 - zoom); // * offsetFromCenter.x;
+    window.transformPreZoom.y += velocity.y * (2 - zoom); //* offsetFromCenter.y;
+    window.targetTransform.x =
+      window.transformPreZoom.x * zoom +
+      gestureData.screenSize.center.x * zoomInvert;
+    window.targetTransform.y =
+      window.transformPreZoom.y * zoom +
+      gestureData.screenSize.center.y * zoomInvert;
+    window.targetTransform.scale = scale * zoom;
+  });
+}
 
 function translateToTargetPos() {
   if (apiData.selectedWindow && gestureData.translating) {
@@ -210,63 +246,63 @@ function translateToTargetPos() {
       velocity.x += dstToTarget.x * 0.005;
       velocity.y += (dstToTarget.y * 0.005) / gestureData.screenSize.ratio;
     } else if (gestureData.translating) {
-      console.log('reset translating', apiData.selectedId)
+      console.log("reset translating", apiData.selectedId);
       gestureData.translating = false;
       apiData.setWindowSelection(apiData.selectedId);
     }
   }
 }
 
-  // main animation loop. runs every frame.
+// main animation loop. runs every frame.
 
-  const animateLoop = () => {
-    translateCursor();
+const animateLoop = () => {
+  translateCursor();
 
-    gestureData.applyZoom()
-    translateToTargetPos()
-    tranformWindowsOnDrag()
-    updateScrollPos();
-    decreaseVelocity();
+  gestureData.applyZoom();
+  translateToTargetPos();
+  tranformWindowsOnDrag();
+  updateScrollPos();
+  decreaseVelocity();
 
-    frameId = requestAnimationFrame(animateLoop);
-  };
+  frameId = requestAnimationFrame(animateLoop);
+};
 
-  onMounted(() => {
-    apiData.load(apiData.baseWindowSize);
+onMounted(() => {
+  apiData.load(apiData.baseWindowSize);
 
-    gestures = new GestureHandler({
-      onStart,
-      onEnd,
-      onMove,
-      onTouch,
-      onWheel,
-      onWheel_Native,
-      onPinch: onWheel,
-      preventDefault: true,
-    });
-
-    window.addEventListener("resize", onResize);
-    // window.addEventListener("wheel", onWheel);
-
-    frameId = requestAnimationFrame(animateLoop);
+  gestures = new GestureHandler({
+    onStart,
+    onEnd,
+    onMove: onMoveGuarded.value,
+    onTouch,
+    onWheel: onWheelGuarded.value,
+    onWheel_Native,
+    onPinch: onWheel,
+    preventDefault: true,
   });
 
-  onBeforeUnmount(() => {
-    window.removeEventListener("resize", onResize);
-    // window.removeEventListener("wheel", onWheel);
-    cancelAnimationFrame(frameId);
-    if (gestures) {
-      gestures.destroy();
-    }
-  });
+  window.addEventListener("resize", onResize);
+  // window.addEventListener("wheel", onWheel);
+
+  frameId = requestAnimationFrame(animateLoop);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", onResize);
+  // window.removeEventListener("wheel", onWheel);
+  cancelAnimationFrame(frameId);
+  if (gestures) {
+    gestures.destroy();
+  }
+});
 </script>
 
 <template>
   <router-view v-if="apiData.loaded && apiData.imgsPreloaded"> </router-view>
   <transition name="fade">
-    <Tutorial v-if="apiData.showTutorial"/>
+    <Tutorial v-if="apiData.showTutorial" />
   </transition>
-  <Loader v-if="apiData.showLoader"/>
+  <Loader v-if="apiData.showLoader" />
   <NavBar />
   <MouseCursor v-if="!apiData.isMobile" />
 </template>

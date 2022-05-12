@@ -4,7 +4,7 @@
     <div id="loader__progress__container">
       <h1 id="loader__progress">
         <div id="loader__progress__text">
-          {{ Math.round(displayProgress) }}
+          {{formattedProgress }}
         </div>
       </h1>
     </div>
@@ -25,6 +25,8 @@ import {
 const apiData = useApiData();
 
 const displayProgress = ref<number>(apiData.loadingProgress);
+
+const formattedProgress = computed<string>(() => displayProgress.value > 9 ? String(Math.round(displayProgress.value)) : `0${Math.round(displayProgress.value)}`)
 
 const onLoadingComplete = () => {
   if (apiData.loadingProgress === 100) {

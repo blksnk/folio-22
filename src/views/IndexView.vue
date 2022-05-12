@@ -26,7 +26,7 @@
     <Minimap
       :items="minimapItems"
       :screenSize="screenSize"
-      :onSelect="selectWindow"
+      :onSelect="apiData.selectWindow"
     />
   </FixedFrame>
 </template>
@@ -112,11 +112,7 @@ function onOpen(windowId: string) {
 }
 
 function onClose(windowId?: string) {
-  apiData.hideAllProjectMediaWindows();
-  if (windowId) {
-    selectWindow(windowId, false, undefined, 0.5);
-  }
-  apiData.showAllProjectWindows();
+  apiData.closeWindow(windowId)
 }
 
 const onWindowClick = (targetId: string, ...args: unknown[]) => {
@@ -124,12 +120,12 @@ const onWindowClick = (targetId: string, ...args: unknown[]) => {
     return
   }
   if(isMediaWindow(targetId)) {
-    selectWindow(targetId, false)
+    apiData.selectWindow(targetId, false)
   }
   else if(apiData.selectedId === targetId && apiData.openWindow?.id !== targetId) {
     onOpen(targetId)
   } else {
-    selectWindow(targetId, false)
+    apiData.selectWindow(targetId, false)
   }
   onMouseOver(targetId)
 }
@@ -283,7 +279,7 @@ const selectWithKeyboard = (direction: string | ArrowDirection) => {
     }
     console.log(newIndex);
     if (newIndex !== selectedIndex) {
-      selectWindow(selectedId);
+      apiData.selectWindow(selectedId);
     }
   }
 };

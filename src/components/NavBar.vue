@@ -1,19 +1,27 @@
 <script setup lang="ts">
+import { useApiData } from "@/stores/apiData";
 import { RouterLink } from "vue-router";
 import AppLogo from "./icons/AppLogo.vue";
 
+const apiData = useApiData()
 
 interface RouteMap {
-  [path: string]: { element: () => HTMLElement | null; title: string };
+  [path: string]: { onClick?: () => void | null; title: string };
+}
+
+const resetIndexView = () => {
+  console.log('aaaaa')
+  if(apiData.openWindow) {
+    apiData.closeWindow(apiData.openWindow.id)
+  }
 }
 
 const routeElementsMap: RouteMap = {
   "/index": {
-    element: () => document.getElementById("page__index"),
     title: "Index,\xa0",
+    onClick: resetIndexView
   },
   "/info": {
-    element: () => document.getElementById("page__index"),
     title: "Information",
   },
 };
@@ -23,7 +31,9 @@ const routeElementsMap: RouteMap = {
   
   <nav>
     <div id="nav__left">
-      <AppLogo/>
+      <router-link to="/index" @click.prevent="resetIndexView">
+        <AppLogo/>
+      </router-link>
       <span id="nav__title">Jean-Nicolas Veigel</span>
     </div>
     <div id="nav__links">
@@ -32,6 +42,7 @@ const routeElementsMap: RouteMap = {
       class="link hover_underline"
       :to="path"
       :key="path"
+      @click="r.onClick"
       >{{ r.title }}</RouterLink
     >
     </div>

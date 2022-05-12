@@ -28,7 +28,7 @@ export const useGestureData = defineStore("gestureData", {
     translating: false,
     zoomTarget: window.innerWidth < 600 ? 0.8 : 0.6,
     preTranslateZoomTarget: window.innerWidth < 600 ? 0.8 : 0.6,
-    zoomFactor: 1,
+    zoomFactor: 0.6,
     MIN_MOVE_FACTOR: 0.55,
     DRAG_FACTOR: 0.9,
     dragDezooming: false,

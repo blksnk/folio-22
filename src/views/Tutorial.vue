@@ -1,5 +1,5 @@
 <template>
-  <fixed-frame id="tutorial">
+  <fixed-frame id="tutorial" displayTitle="How to navigate" :forceShow="!apiData.tutorialFinished" @close="onSkip" buttonText="skip">
     <div id="tutorial__box" :style="boxStyle"></div>
 
     <div class="tutorial__target__container" :style="currentStepStyle">
@@ -29,13 +29,11 @@ import FixedFrame from "@/components/FixedFrame.vue";
 import { useApiData } from "@/stores/apiData";
 import { useGestureData, velocity } from "@/stores/gestureData";
 import { clamp, diffLessThan } from "@/utils/math";
-import { storeToRefs } from "pinia";
 import { hideTutorial } from "@/utils/transition";
 
 const apiData = useApiData();
 const gestureData = useGestureData();
 
-let frameId = 0;
 
 type StepTarget = { scale: number } | Vector2;
 
@@ -105,7 +103,11 @@ const getCenterOffset = (boxSize: Vector2): Vector2 => ({
   y: window.innerHeight / 2 - boxSize.y / 2 - (apiData.isMobile ? 42 : 47),
 });
 
-const boxTransform = reactive<Transform>({ x: 0, y: 0, scale: gestureData.zoomFactor });
+const boxTransform = reactive<Transform>({
+  x: 0,
+  y: 0,
+  scale: gestureData.zoomFactor,
+});
 
 const offsetPosition = (source: Transform): Transform => {
   const centerOffset = getCenterOffset(size.value);
@@ -152,21 +154,16 @@ const isTargetReached = () => {
 };
 
 const transitionToContent = () => {
-  console.log("runs");
-  gestureData.zoomTarget = 0.6
   hideTutorial(() => {
-        setTimeout(() => {
-          apiData.showTutorial = false
-        }, 400)
-  })
+    setTimeout(() => {
+      apiData.showTutorial = false;
+      apiData.selectWindow(apiData.allWindows[1].id, false, undefined, 0.4)
+    }, 400);
+  });
 };
 
 const advanceStep = () => {
-  if (
-    isTargetReached() &&
-    currentStep.value &&
-    !currentStep.value?.complete
-  ) {
+  if (isTargetReached() && currentStep.value && !currentStep.value?.complete) {
     (
       steps.value?.find(({ id }) => id === currentStep.value?.id) || {
         complete: false,
@@ -184,28 +181,17 @@ watchEffect(() => {
   }
 });
 
-
 watchEffect(() => {
-  if (tutorialFinished.value) {
-    apiData.tutorialFinished = true
+  if (tutorialFinished.value && !apiData.tutorialFinished) {
+    apiData.tutorialFinished = true;
     transitionToContent();
   }
 });
 
-// const animate = () => {
-//   console.log(velocity.x)
-//   boxTransform.value.x += velocity.x
-//   boxTransform.value.y += velocity.y
-//   frameId = requestAnimationFrame(animate)
-// }
-
-// onMounted(() => {
-//   frameId = requestAnimationFrame(animate)
-// })
-
-// onBeforeUnmount(() => {
-//   cancelAnimationFrame(frameId)
-// })
+const onSkip = () => {
+  apiData.tutorialFinished = true;
+  transitionToContent();
+}
 </script>
 
 <style lang="sass">

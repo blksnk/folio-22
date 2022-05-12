@@ -2,15 +2,20 @@
   <main class="overlay__frame">
     <div
       :class="{
-        show,
+        show: forceShow || show,
         overlay__frame__title: true,
       }"
     >
       <div class="overlay__frame__title__left">
         <h1>
-          <span @click="onClick()" class="folder__name hover_underline"
-            >Index //</span
-          > {{ apiData.openWindow?.title }}
+          <span
+            @click="onClick()"
+            class="folder__name hover_underline"
+            v-if="!displayTitle"
+          >
+            Index //
+          </span>
+          {{ displayTitle || apiData.openWindow?.title }}
         </h1>
         <div v-if="apiData.openWindow?.tags" class="tags">
           <div
@@ -26,7 +31,7 @@
       <WindowButton
         enabled
         active
-        activeText="close"
+        :activeText="buttonText || 'close'"
         text="open"
         @click="onClick()"
       />
@@ -42,13 +47,17 @@ import { useApiData } from "@/stores/apiData";
 import { useRoute } from "vue-router";
 
 const apiData = useApiData();
-const route = useRoute()
+const route = useRoute();
 
 interface FixedFrameProps {
-  displayTitle?: boolean;
+  displayTitle?: string;
+  forceShow?: boolean;
+  buttonText?: string;
 }
 
-const show = computed(() => route.path === '/info' ? false : apiData.isWindowOpen  )
+const show = computed(() =>
+  route.path === "/info" ? false : apiData.isWindowOpen
+);
 
 defineProps<FixedFrameProps>();
 

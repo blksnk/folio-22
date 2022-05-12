@@ -6,7 +6,9 @@ import {
 } from "@/utils/layout";
 import { WindowData, ProjectMediaWindows, Vector2 } from "@/utils/layout.types";
 import { preloadImg } from "@/utils/visual";
+import { computeZoomTarget, generateWindowSize } from "@/utils/layout";
 import { defineStore } from "pinia";
+import { useGestureData } from "@/stores/gestureData";
 
 type Callback = (arg: any) => void;
 
@@ -149,6 +151,49 @@ export const useApiData = defineStore("apiData", {
       this.allWindows.forEach((window) => {
         window.selected = window.id === selectedId;
       });
+    },
+    closeWindow(windowId?: string): void {
+      this.hideAllProjectMediaWindows();
+      if (windowId) {
+        this.selectWindow(windowId, false, undefined, 0.5);
+      }
+      this.showAllProjectWindows();
+    },
+    selectWindow(
+      targetId: string,
+      forceShowCursor?: boolean,
+      event?: MouseEvent,
+      zt?: number
+    ) {
+      const gestureData = useGestureData();
+
+      const window = this.getWindowById(targetId);
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      if (
+        window &&
+        (this.selectedId !== targetId || this.openWindow?.id === targetId) &&
+        !window.hidden
+      ) {
+        this.selectedId = targetId;
+        gestureData.translating = true;
+
+        this.setWindowSelection(targetId);
+
+        const zoom =
+          zt ||
+          computeZoomTarget(
+            generateWindowSize(
+              window.thumbnail.original.aspectRatio,
+              this.baseWindowSize
+            ),
+            this.isMobile ? 100 : 300
+          );
+        gestureData.zoomTarget = zoom;
+        gestureData.preTranslateZoomTarget = zoom;
+      }
     },
   },
 });

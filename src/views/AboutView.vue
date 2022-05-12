@@ -1,7 +1,7 @@
 <template>
   <fixed-frame id="page__info" class="dotted">
-    <clipped-image/>
-    
+    <clipped-image />
+
     <div id="about__content" :style="contentStyle">
       <h1>Jean-Nicolas Veigel</h1>
       <h2>Paris-area&#8212;<em>based</em></h2>
@@ -24,12 +24,18 @@
           <span>Client</span>
           <span>Role</span>
         </div>
-        <a class="table__row hover_underline__parent reversed" v-for="job in jobs" target="_blank" :title="job.client.name" :href="job.client.website">
-          <span>{{job.year}}</span>
+        <a
+          class="table__row hover_underline__parent reversed"
+          v-for="job in jobs"
+          target="_blank"
+          :title="job.client.name"
+          :href="job.client.website"
+        >
+          <span>{{ job.year }}</span>
           <div>
-            <span class="hover_underline">{{job.client.name}}</span>
+            <span class="hover_underline">{{ job.client.name }}</span>
           </div>
-          <span>{{job.role}}</span>
+          <span>{{ job.role }}</span>
         </a>
       </div>
       <h3 class="about__heading">Spoken <em>languages</em></h3>
@@ -40,27 +46,27 @@
           <span>Level</span>
         </div>
         <div class="table__row reversed">
-          <f-r/>
+          <f-r />
           <span>French</span>
           <span>Native Language</span>
         </div>
         <div class="table__row reversed">
-          <e-n/>
+          <e-n />
           <span>English</span>
           <span>Fluent</span>
         </div>
         <div class="table__row reversed">
-          <d-e/>
+          <d-e />
           <span>German</span>
           <span>C1</span>
         </div>
         <div class="table__row reversed">
-          <e-s/>
+          <e-s />
           <span>Spanish</span>
           <span>B1 </span>
         </div>
         <div class="table__row reversed">
-          <j-p/>
+          <j-p />
           <span>Japanese</span>
           <span>A1</span>
         </div>
@@ -75,28 +81,59 @@
         <div class="table__row reversed">
           <span>2023</span>
           <span>Art Direction</span>
-          <span>Sup de création, Paris</span>
+          <span>Sup de création,<br/>Paris</span>
         </div>
         <div class="table__row reversed">
           <span>2018</span>
           <span>Web Development Bootcamp</span>
-          <span>IronHack, Paris</span>
+          <span>IronHack,<br/>Paris</span>
         </div>
         <div class="table__row reversed">
           <span>2018</span>
           <span>DUT Business & Marketing</span>
-          <span>IUT Robert Schuman, Strasbourg</span>
+          <span>IUT Robert Schuman,<br/>Strasbourg</span>
         </div>
         <div class="table__row reversed">
           <span>2017</span>
           <span>Baccalauréat ES</span>
-          <span>Gymnase Jean Sturm, Strasbourg</span>
+          <span>Gymnase Jean Sturm,<br/>Strasbourg</span>
         </div>
       </div>
-      <h2 class="about__heading">Drop me a message !</h2>
-      <div id="about__contact">
-        <a href="mailto:hello@genmetsu.art" target="_blank" class="hover_underline">hello@genmetsu.art</a>
-        <a href="tel:+33658238758" class="hover_underline">(+33) 6 58 23 87 58</a>
+      <h2 class="about__heading">Let's make<br /><em>something great</em></h2>
+      
+      <a
+        href="mailto:hello@genmetsu.art"
+        target="_blank"
+        class="contact__bubble hover_underline__parent m"
+        id="b_0"
+      >
+        <span class="hover_underline">email</span>
+      </a>
+      <a
+        href="tel:+33658238758"
+        class="contact__bubble hover_underline__parent s"
+        id="b_1"
+      >
+        <span class="hover_underline">call me</span>
+      </a>
+      <a
+        href="https://instagram.com/chxmpetre"
+        target="_blank"
+        class="contact__bubble hover_underline__parent l"
+        id="b_2"
+      >
+        <span class="hover_underline">instagram</span>
+      </a>
+      <a
+        href="https://linkedin.com/in/jn-veigel/"
+        target="_blank"
+        class="contact__bubble hover_underline__parent s"
+        id="b_3"
+      >
+        <span class="hover_underline">linkedin</span>
+      </a>
+      <div id="credits">
+        <span>Design & Code — Myself</span>
       </div>
     </div>
   </fixed-frame>
@@ -119,31 +156,29 @@ import FR from "@/components/icons/flags/FR.vue";
 import JP from "@/components/icons/flags/JP.vue";
 import { onInfoEnter, onInfoLeave } from "@/utils/transition";
 
-const gestureData = useGestureData()
+const gestureData = useGestureData();
 
-onBeforeRouteLeave(
-  onInfoLeave
-);
-onBeforeRouteUpdate(onInfoEnter)
+onBeforeRouteLeave(onInfoLeave);
+onBeforeRouteUpdate(onInfoEnter);
 
 const setScrollMax = () => {
-  const content = document.getElementById('about__content');
+  const content = document.getElementById("about__content");
   if (content) {
-    const scrollMaxY = content.offsetHeight - window.innerHeight / 2 - 40
-    gestureData.setScrollMax({ y: scrollMaxY})
+    const scrollMaxY = content.offsetHeight - window.innerHeight / 3 - 40;
+    gestureData.setScrollMax({ y: scrollMaxY });
   }
-}
+};
 
 onMounted(() => {
-  onInfoEnter()
+  onInfoEnter();
   // move to top on mount
-  gestureData.targetScrollPos = {x: 0, y: 0}
-  setScrollMax()
-}
+  gestureData.targetScrollPos = { x: 0, y: 0 };
+  setTimeout(setScrollMax, 500)
+});
+
+const contentStyle = computed(
+  () => `transform: translateY(${px(-gestureData.scrollPos.y)})`
 );
-
-const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scrollPos.y)})`)
-
 </script>
 
 <style lang="sass" scoped>
@@ -181,7 +216,7 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
 
     &.tab
       grid-column: 3 / -1
-      
+
       @media screen and (max-width: 600px)
         grid-column: 2 / -1
 
@@ -203,19 +238,22 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
   .about__heading
     grid-column: 2 / -1
     margin-top: 64px
-    
+
     @media screen and (max-width: 600px)
-        grid-column: 1 / -1
+      grid-column: 1 / -1
+
+  // &:last-of-type em
+  //   margin-left: calc((100vw - 44px) * 0.1)
 
   .table
     grid-column: 3 / span 4
-    
+
     @media screen and (max-width: 600px)
       grid-column: 1 / -1
 
     span
       @include f-nav-link
-    
+
     .table__row, .table__header
       display: grid
       color: $c-grey-4
@@ -233,25 +271,133 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
 
     .table__row
       transition: color .2s linear 0s
-      
+
       &:hover
         color: $c-white
 
       .flag
         align-self: center
 
-  #about__contact
-    grid-column: 3 / span 6
-    display: grid
-    grid-template-columns: repeat(2, 1fr)
-    grid-column-gap: 12px
-    margin-top: 12px
+  #credits
+    @include f-project-title__light
+    grid-column: 1 / -1
+    color: $c-grey-4
+    text-align: right
 
-    a
+  .contact__bubble
+    position: relative
+    // margin-top: 12px
+    @include bordered
+    border-radius: 50%
+    @include fl-center
+
+    &:before
+      content: ""
+      position: absolute
+      background-color: $c-grey-6
+      top: 0
+      bottom: 0
+      left: 0
+      right: 0
+      border-radius: 100%
+      transform: scale(0)
+      opacity: 0
+      transition: transform 0.6s ease-in 0s, opacity 0.6s linear 0s
+
+    &:hover:before
+      transform: scale(1)
+      opacity: 1
+      transition: transform 0.3s ease-out 0s, opacity 0.3s linear 0s
+
+    &:hover span
+      color: $c-primary
+
+    &.s
+      width: calc((100vw - 44px) * 0.15)
+      height: calc((100vw - 44px) * 0.15)
+      grid-row: span 2
+      grid-column: span 2
+
+      @media screen and (max-width: 950px)
+        width: calc((100vw - 44px) * 0.2)
+        height: calc((100vw - 44px) * 0.2)
+
+      @media screen and (max-width: 600px)
+        width: calc((100vw - 44px) * 0.3)
+        height: calc((100vw - 44px) * 0.3)
+        grid-row: span 3
+        grid-column: span 3
+
+    &.m
+      width: calc((100vw - 44px) * 0.2)
+      height: calc((100vw - 44px) * 0.2)
+      grid-row: span 2
+      grid-column: span 2
+
+      @media screen and (max-width: 950px)
+        width: calc((100vw - 44px) * 0.25)
+        height: calc((100vw - 44px) * 0.25)
+
+      @media screen and (max-width: 600px)
+        width: calc((100vw - 44px) * 0.4)
+        height: calc((100vw - 44px) * 0.4)
+        grid-row: span 4
+        grid-column: span 4
+
+
+    &.l
+      width: calc((100vw - 44px) * 0.3)
+      height: calc((100vw - 44px) * 0.3)
+      grid-row: span 3
+      grid-column: span 3
+
+      @media screen and (max-width: 950px)
+        width: calc((100vw - 44px) * 0.35)
+        height: calc((100vw - 44px) * 0.35)
+
+      @media screen and (max-width: 600px)
+        width: calc((100vw - 44px) * 0.5)
+        height: calc((100vw - 44px) * 0.5)
+        grid-row: span 4
+        grid-column: span 4
+
+    &#b_0
+      grid-column: 3 / span 2
+
+      @media screen and (max-width: 600px)
+        grid-column: 1 / span 3
+
+    &#b_1
+      grid-column: 5 / span 2
+      grid-row: span 3
+
+      @media screen and (max-width: 600px)
+        grid-column: 4 / span 3
+
+    &#b_2
+      grid-column: 4 / span 3
+      margin-top: -64px
+
+      @media screen and (max-width: 950px)
+        margin-top: -32px
+
+      @media screen and (max-width: 600px)
+        grid-column: 2 / span 4
+
+    &#b_3
+      grid-column: 7 / span 2
+      margin-top: -33%
+
+      @media screen and (max-width: 600px)
+        grid-column: 6 / span 3
+
+    span
       @include f-nav-link
       text-transform: uppercase
       color: $c-grey-6
-      
+      transition: color 0.3s linear 0s
+      // mix-blend-mode: exclusion
+
 
 @media screen and (max-width: 600px)
   h1
@@ -259,5 +405,4 @@ const contentStyle = computed(() => `transform: translateY(${px(-gestureData.scr
 
   h2:last-of-type
     margin-bottom: 64
-      
 </style>

@@ -1,5 +1,4 @@
 <template>
-  <router-link to="/index">
     <svg
       viewBox="0 0 212 30"
       fill="none"
@@ -34,11 +33,9 @@
         stroke="#F2F2F2"
       />
     </svg>
-  </router-link>
 </template>
 
 <script setup lang="ts">
-import { RouterLink } from "vue-router";
 </script>
 
 <style lang="sass">

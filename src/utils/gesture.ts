@@ -5,9 +5,13 @@ type func = () => void;
 
 type onTouchFunc = (touches: Vector2[]) => void;
 
-type VectorArgFunc = (vec: Vector2, delta?: Vector2) => void;
+export type VectorArgFunc = (vec: Vector2, delta?: Vector2) => void;
 
-type onMoveFn = (vec: Vector2, delta: Vector2, fromWheel?: boolean) => void;
+export type onMoveFn = (
+  vec: Vector2,
+  delta: Vector2,
+  fromTrackpad?: boolean
+) => void;
 
 type EventListener = (e: Event) => void;
 interface GestureHandlerOptions {
