@@ -99,7 +99,7 @@
           <span>Gymnase Jean Sturm,<br/>Strasbourg</span>
         </div>
       </div>
-      <h2 class="about__heading">Let's make<br /><em>something great</em></h2>
+      <h2 class="about__heading">Let's make<br/><em>something great</em></h2>
       
       <a
         href="mailto:hello@genmetsu.art"
@@ -164,7 +164,7 @@ onBeforeRouteUpdate(onInfoEnter);
 const setScrollMax = () => {
   const content = document.getElementById("about__content");
   if (content) {
-    const scrollMaxY = content.offsetHeight - window.innerHeight / 3 - 40;
+    const scrollMaxY = content.offsetHeight - window.innerHeight + 104;
     gestureData.setScrollMax({ y: scrollMaxY });
   }
 };
