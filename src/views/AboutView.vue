@@ -18,18 +18,19 @@
       </p>
 
       <h3 class="about__heading">Work <em>experience</em></h3>
-      <div id="jobs" class="table">
+      <div id="jobs" class="table" @mouseleave="hideCursor">
         <div class="table__header reversed">
           <span>Year</span>
           <span>Client</span>
           <span>Role</span>
         </div>
         <a
-          class="table__row hover_underline__parent reversed"
+          class="table__row hover_underline__parent reversed job__row"
           v-for="job in jobs"
           target="_blank"
           :title="job.client.name"
           :href="job.client.website"
+          @mouseenter="showCursor('arrow-redo-outline')"
         >
           <span>{{ job.year }}</span>
           <div>
@@ -80,60 +81,69 @@
         </div>
         <div class="table__row reversed">
           <span>2023</span>
-          <span>Art Direction</span>
-          <span>Sup de création,<br/>Paris</span>
+          <span>Art Direction Bachelor</span>
+          <span>Sup de création,<br />Paris</span>
         </div>
         <div class="table__row reversed">
           <span>2018</span>
           <span>Web Development Bootcamp</span>
-          <span>IronHack,<br/>Paris</span>
+          <span>IronHack,<br />Paris</span>
         </div>
         <div class="table__row reversed">
           <span>2018</span>
           <span>DUT Business & Marketing</span>
-          <span>IUT Robert Schuman,<br/>Strasbourg</span>
+          <span>IUT Robert Schuman,<br />Strasbourg</span>
         </div>
         <div class="table__row reversed">
           <span>2017</span>
           <span>Baccalauréat ES</span>
-          <span>Gymnase Jean Sturm,<br/>Strasbourg</span>
+          <span>Gymnase Jean Sturm,<br />Strasbourg</span>
         </div>
       </div>
-      <h2 class="about__heading">Let's make<br/><em>something great</em></h2>
-      
+      <h2 class="about__heading" id="contact__title">
+        Let's make<br /><em>something great</em>
+      </h2>
       <a
         href="mailto:hello@genmetsu.art"
         target="_blank"
-        class="contact__bubble hover_underline__parent m"
-        id="b_0"
+        class="contact__item c_l hover_underline__parent"
+        id="contact__mail"
+        @mouseenter="showCursor('mail-unread-outline')"
+        @mouseleave="hideCursor"
       >
-        <span class="hover_underline">email</span>
+        <span class="underline">hello@genmetsu.art</span>
       </a>
       <a
         href="tel:+33658238758"
-        class="contact__bubble hover_underline__parent s"
-        id="b_1"
+        class="contact__item c_r hover_underline__parent"
+        id="contact__phone"
+        @mouseenter="showCursor('call-outline')"
+        @mouseleave="hideCursor"
       >
-        <span class="hover_underline">call me</span>
+        <span class="underline">+33 6 58 23 87 58</span>
       </a>
       <a
         href="https://instagram.com/chxmpetre"
         target="_blank"
-        class="contact__bubble hover_underline__parent l"
-        id="b_2"
+        class="contact__item c_l hover_underline__parent"
+        id="contact__instagram"
+        @mouseenter="showCursor('logo-instagram')"
+        @mouseleave="hideCursor"
       >
-        <span class="hover_underline">instagram</span>
+        <span class="underline">Instagram</span>
       </a>
       <a
         href="https://linkedin.com/in/jn-veigel/"
         target="_blank"
-        class="contact__bubble hover_underline__parent s"
-        id="b_3"
+        class="contact__item c_r hover_underline__parent"
+        id="contact__linkedin"
+        @mouseenter="showCursor('logo-linkedin')"
+        @mouseleave="hideCursor"
       >
-        <span class="hover_underline">linkedin</span>
+        <span class="underline">LinkedIn</span>
       </a>
       <div id="credits">
-        <span>Design & Code — Myself</span>
+        <span>Projects, Design & Code — Jean-Nicolas Veigel ©2022</span>
       </div>
     </div>
   </fixed-frame>
@@ -141,7 +151,7 @@
 
 <script setup lang="ts">
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
-import { onMounted, computed } from "vue";
+import { onMounted, computed, onBeforeUnmount } from "vue";
 import FixedFrame from "@/components/FixedFrame.vue";
 
 import { px } from "@/utils/layout";
@@ -155,8 +165,11 @@ import EN from "@/components/icons/flags/EN.vue";
 import FR from "@/components/icons/flags/FR.vue";
 import JP from "@/components/icons/flags/JP.vue";
 import { onInfoEnter, onInfoLeave } from "@/utils/transition";
+import { useMouseData } from "@/stores/mouseData";
 
 const gestureData = useGestureData();
+const mouseData = useMouseData();
+let observer: IntersectionObserver | null = null;
 
 onBeforeRouteLeave(onInfoLeave);
 onBeforeRouteUpdate(onInfoEnter);
@@ -169,11 +182,43 @@ const setScrollMax = () => {
   }
 };
 
+const onIntersect = (entries: IntersectionObserverEntry[]) => {
+  entries.forEach((entry) => {
+    entry.target.classList.toggle("visible", entry.isIntersecting);
+  });
+};
+
+const createObserver = () => {
+  observer = new IntersectionObserver(onIntersect, {
+    root: document.getElementById("page__info"),
+    rootMargin: "0px",
+    threshold: 0,
+  });
+
+  const tableRows = document.querySelectorAll(".table__row, .contact__item");
+  [...tableRows].forEach((row) => observer?.observe(row));
+};
+
+const showCursor = (icon = "arrow-redo-outline") => {
+  mouseData.showCursor = true;
+  mouseData.cursorIcon = icon;
+};
+
+const hideCursor = () => {
+  mouseData.showCursor = false;
+};
+
 onMounted(() => {
   onInfoEnter();
   // move to top on mount
   gestureData.targetScrollPos = { x: 0, y: 0 };
-  setTimeout(setScrollMax, 500)
+  setTimeout(setScrollMax, 500);
+  createObserver();
+  window.addEventListener("resize", setScrollMax);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", setScrollMax);
 });
 
 const contentStyle = computed(
@@ -248,7 +293,7 @@ const contentStyle = computed(
   .table
     grid-column: 3 / span 4
 
-    @media screen and (max-width: 600px)
+    @media screen and (max-width: 750px)
       grid-column: 1 / -1
 
     span
@@ -271,8 +316,17 @@ const contentStyle = computed(
 
     .table__row
       transition: color .2s linear 0s
+      overflow: hidden
 
-      &:hover
+      & > *
+        transform: translateY(0)
+        transition: transform 0.3s ease-out 0.3s,
+
+      &:not(.visible) > *
+        transform: translateY(110%)
+        transition: transform 0.3s ease-out 0s,
+
+      &.job__row:hover
         color: $c-white
 
       .flag
@@ -284,119 +338,40 @@ const contentStyle = computed(
     color: $c-grey-4
     text-align: right
 
-  .contact__bubble
-    position: relative
-    // margin-top: 12px
-    @include bordered
-    border-radius: 50%
-    @include fl-center
-
-    &:before
-      content: ""
-      position: absolute
-      background-color: $c-grey-6
-      top: 0
-      bottom: 0
-      left: 0
-      right: 0
-      border-radius: 100%
-      transform: scale(0)
-      opacity: 0
-      transition: transform 0.6s ease-in 0s, opacity 0.6s linear 0s
-
-    &:hover:before
-      transform: scale(1)
-      opacity: 1
-      transition: transform 0.3s ease-out 0s, opacity 0.3s linear 0s
-
-    &:hover span
-      color: $c-primary
-
-    &.s
-      width: calc((100vw - 44px) * 0.15)
-      height: calc((100vw - 44px) * 0.15)
-      grid-row: span 2
-      grid-column: span 2
-
-      @media screen and (max-width: 950px)
-        width: calc((100vw - 44px) * 0.2)
-        height: calc((100vw - 44px) * 0.2)
-
-      @media screen and (max-width: 600px)
-        width: calc((100vw - 44px) * 0.3)
-        height: calc((100vw - 44px) * 0.3)
-        grid-row: span 3
-        grid-column: span 3
-
-    &.m
-      width: calc((100vw - 44px) * 0.2)
-      height: calc((100vw - 44px) * 0.2)
-      grid-row: span 2
-      grid-column: span 2
-
-      @media screen and (max-width: 950px)
-        width: calc((100vw - 44px) * 0.25)
-        height: calc((100vw - 44px) * 0.25)
-
-      @media screen and (max-width: 600px)
-        width: calc((100vw - 44px) * 0.4)
-        height: calc((100vw - 44px) * 0.4)
-        grid-row: span 4
-        grid-column: span 4
-
-
-    &.l
-      width: calc((100vw - 44px) * 0.3)
-      height: calc((100vw - 44px) * 0.3)
-      grid-row: span 3
-      grid-column: span 3
-
-      @media screen and (max-width: 950px)
-        width: calc((100vw - 44px) * 0.35)
-        height: calc((100vw - 44px) * 0.35)
-
-      @media screen and (max-width: 600px)
-        width: calc((100vw - 44px) * 0.5)
-        height: calc((100vw - 44px) * 0.5)
-        grid-row: span 4
-        grid-column: span 4
-
-    &#b_0
-      grid-column: 3 / span 2
-
-      @media screen and (max-width: 600px)
-        grid-column: 1 / span 3
-
-    &#b_1
-      grid-column: 5 / span 2
-      grid-row: span 3
-
-      @media screen and (max-width: 600px)
-        grid-column: 4 / span 3
-
-    &#b_2
-      grid-column: 4 / span 3
-      margin-top: -64px
-
-      @media screen and (max-width: 950px)
-        margin-top: -32px
-
-      @media screen and (max-width: 600px)
-        grid-column: 2 / span 4
-
-    &#b_3
-      grid-column: 7 / span 2
-      margin-top: -33%
-
-      @media screen and (max-width: 600px)
-        grid-column: 6 / span 3
+  .contact__item
+    @include f-nav-link
+    color: $c-grey-4
+    margin-top: 12px
+    margin-bottom: 52px
+    width: max-content
+    overflow: hidden
 
     span
-      @include f-nav-link
-      text-transform: uppercase
-      color: $c-grey-6
-      transition: color 0.3s linear 0s
-      // mix-blend-mode: exclusion
+      transition: color .2s linear 0s, transform 0.3s ease-out 0.3s
+      transform: translateY(0)
+
+    &:not(.visible) > *
+        transform: translateY(110%)
+        transition: color .2s linear 0s, transform 0.3s ease-out 0s,
+
+    &:hover
+      color: $c-white
+
+    &.c_l
+      grid-column: 3 / span 2
+
+    &.c_r
+      grid-column: 5 / span 2
+
+    &#contact__mail
+      word-break: break-word
+
+    @media screen and (max-width: 600px)
+      &.c_l
+        grid-column: 1 / span 5
+
+      &.c_r
+        grid-column: 6 / span 5
 
 
 @media screen and (max-width: 600px)

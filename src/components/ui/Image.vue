@@ -36,13 +36,13 @@ const defaultSrc = ref(props.sources.large.url);
 
 const srcSetDefs = computed(() =>
   Object.values(props.sources)
+    .filter(({ url }) => url !== undefined)
     .map(({ width, url }) => ({ width, url }))
     .sort((a, b) => a.width - b.width)
 );
 
 const srcset = computed(() =>
   [...srcSetDefs.value]
-    .sort((a, b) => a.width - b.width)
     .map(({ width, url }) => `${url} ${width}w`)
     .join(",\n")
 );

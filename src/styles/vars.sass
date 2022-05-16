@@ -53,6 +53,31 @@ $b-style: $b-width solid $c-grey-6
   transform: scaleX(1)
   transform-origin: center left
 
+.underline, .link
+  position: relative
+  transition: transform .3s ease-in
+
+  &:before
+    position: absolute
+    content: ""
+    bottom: -2px
+    left: 0
+    background-color: $c-white
+    height: 1px
+    width: 100%
+    transform: scaleX(1)
+    transition: transform .3s ease-in
+    transform-origin: center left
+    mix-blend-mode: normal
+
+  &:hover:before, &.router-link-active:before
+    transform: scaleX(0)
+    transform-origin: center right
+
+.hover_underline__parent:hover .underline:before
+  transform: scaleX(0)
+  transform-origin: center right
+
 @mixin dotted
   background-image: radial-gradient($c-grey-2 1px, transparent 0)
   background-size: 24px 24px
@@ -72,10 +97,19 @@ $b-style: $b-width solid $c-grey-6
     transition: stroke .3s linear 0s
 
 .table__row:hover .flag *
-  stroke: $c-primary
+  // stroke: $c-primary
 
 .fade-enter-active, .fade-leave-active
   transition: opacity .5s
 
 .fade-enter, .fade-leave-to
   opacity: 0
+
+.loader__message-enter-active, .loader__message-leave-active
+  transition: transform .2s
+
+.loader__message-enter-from
+  transform: translate(-100%)
+
+.loader__message-leave-to
+  transform: translate(100%)

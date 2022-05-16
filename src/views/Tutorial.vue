@@ -158,7 +158,7 @@ const transitionToContent = () => {
     setTimeout(() => {
       apiData.showTutorial = false;
       apiData.selectWindow(apiData.allWindows[1].id, false, undefined, 0.4)
-    }, 400);
+    }, 200);
   });
 };
 

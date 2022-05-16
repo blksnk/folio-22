@@ -30,6 +30,7 @@ export const useApiData = defineStore("apiData", {
     showTutorial: boolean;
     showLoader: boolean;
     loadingProgress: number;
+    loadingMessage: string;
     zoomTarget: number;
     preTranslateZoomTarget: number;
     zoomFactor: number;
@@ -46,10 +47,11 @@ export const useApiData = defineStore("apiData", {
     },
     selectedId: "0",
     loaderAnimationFinished: false,
-    tutorialFinished: false,
-    showTutorial: true,
+    tutorialFinished: true,
+    showTutorial: false,
     showLoader: true,
     loadingProgress: 0,
+    loadingMessage: "Fetching exciting projects...",
     zoomTarget: window.innerWidth < 600 ? 0.8 : 0.6,
     preTranslateZoomTarget: window.innerWidth < 600 ? 0.8 : 0.6,
     zoomFactor: 1,
@@ -66,28 +68,41 @@ export const useApiData = defineStore("apiData", {
     selectedWindow(state): WindowData | undefined {
       return this.allWindows.find((el) => el.id === state.selectedId);
     },
+    visibleOpenWindows(state): (WindowData | undefined)[] {
+      const mediaWins = state.mediaWindows.find(
+        ({ projectUid }) => projectUid === this.openWindow?.id
+      );
+      const windows = [this.openWindow, ...(mediaWins?.mediaWindows || [])];
+      return windows;
+    },
+    selectedVisibleOpenWindowIndex(state): number {
+      return this.visibleOpenWindows.indexOf(this.selectedWindow);
+    },
   },
   actions: {
-    async load(
-      baseWindowSize: Vector2,
-      onSuccess?: Callback,
-      onError?: Callback
-    ) {
+    async load(onSuccess?: Callback, onError?: Callback) {
       try {
         apiDataWorker.onmessage = (e) => {
           if (e.data?.projects) {
             this.projects = e.data.projects;
             this.selectedId = this.projects[0]?.uid || "0";
             this.loadingProgress = 25;
-            windowDataWorker.postMessage({
-              baseWindowSize: JSON.stringify(baseWindowSize),
-              projects: JSON.stringify(e.data.projects),
-            });
+            this.loadingMessage = "Generating layout...";
+            this.createLayout(onSuccess, onError);
           }
         };
+
+        apiDataWorker.postMessage("load");
+      } catch (e) {
+        if (onError) onError(e);
+      }
+    },
+    async createLayout(onSuccess?: Callback, onError?: Callback) {
+      try {
         windowDataWorker.onmessage = async (e) => {
           if (e.data.projectWindows) {
             this.projectWindows = e.data.projectWindows;
+            this.loadingMessage = "Placing images and mockups...";
           }
           if (e.data.mediaWindows) {
             this.mediaWindows = e.data.mediaWindows;
@@ -95,14 +110,19 @@ export const useApiData = defineStore("apiData", {
           if (e.data.progress) {
             this.loadingProgress = e.data.progress;
             if (e.data.progress === 90) {
+              this.loadingMessage = "Loading previews...";
               await this.preloadImages(onError);
+              this.loadingMessage = "All done !";
               this.loaded = true;
               if (onSuccess) onSuccess(this.projects);
             }
           }
         };
 
-        apiDataWorker.postMessage("load");
+        windowDataWorker.postMessage({
+          baseWindowSize: JSON.stringify(this.baseWindowSize),
+          projects: JSON.stringify(this.projects),
+        });
       } catch (e) {
         if (onError) onError(e);
       }

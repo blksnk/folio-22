@@ -63,6 +63,7 @@ import {
 import {
   ScreenDims,
   Boundary,
+WindowData,
 } from "@/utils/layout.types";
 import { ArrowDirection } from "@/utils/gestures.types";
 import { onIndexEnter, onIndexLeave } from "@/utils/transition";
@@ -106,7 +107,7 @@ function onOpen(windowId: string) {
       window.hidden = true;
     }
   });
-  selectWindow(windowId, false, undefined, 0.75);
+  apiData.selectWindow(windowId, false, undefined, 0.75);
 
   showSelectedProjectMediaWindows(windowId);
 }
@@ -130,51 +131,6 @@ const onWindowClick = (targetId: string, ...args: unknown[]) => {
   onMouseOver(targetId)
 }
 
-const selectWindow = (
-  targetId: string,
-  forceShowCursor = false,
-  event?: MouseEvent,
-  zt?: number
-) => {
-  const window = apiData.getWindowById(targetId);
-  if (event) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
-  if (
-    window &&
-    (apiData.selectedId !== targetId || apiData.openWindow?.id === targetId) &&
-    !window.hidden
-  ) {
-    apiData.selectedId = targetId;
-    gestureData.translating = true;
-    
-    apiData.setWindowSelection(targetId);
-    // if (!isMediaWindow(String(targetId))) {
-    //   mouseData.showCursor = true;
-    //   if (!window.open) {
-    //     mouseData.cursorIcon = "folder-open-outline";
-    //   }
-    // } else {
-    //   mouseData.showCursor = false;
-    // }
-
-    const zoom =
-      zt ||
-      computeZoomTarget(
-        generateWindowSize(
-          window.thumbnail.original.aspectRatio,
-          apiData.baseWindowSize
-        ),
-        apiData.isMobile ? 100 : 300
-      );
-    gestureData.zoomTarget = zoom;
-    gestureData.preTranslateZoomTarget = zoom;
-  }
-};
-
-
 function onMouseOver(windowId: string) {
   const window = apiData.getWindowById(windowId);
   if (
@@ -182,11 +138,18 @@ function onMouseOver(windowId: string) {
     window &&
     !window.hidden
   ) {
-    mouseData.showCursor = isMediaWindow(windowId) ? !window.selected : window.open ? !window.selected : true;
-    mouseData.cursorIcon =
-      isMediaWindow(windowId) || window.open || apiData.selectedId !== windowId
+    const isMedia = isMediaWindow(windowId)
+    const isWindowOpen = apiData.openWindow !== undefined
+    let isNextWindow = false
+    if( isWindowOpen ) {
+      const hoveringIndex = apiData.visibleOpenWindows.indexOf(window)
+      isNextWindow = hoveringIndex > apiData.selectedVisibleOpenWindowIndex      
+    }
+    mouseData.showCursor = isMedia ? !window.selected : window.open ? !window.selected : true;
+    mouseData.cursorIcon = isWindowOpen ? isNextWindow ? 'arrow-forward-sharp' : 'arrow-back-sharp' :
+      apiData.selectedId !== windowId
         ? "eye-outline"
-        : "expand-sharp";
+        : "resize-sharp";
   }
 }
 
@@ -225,10 +188,7 @@ const selectWithKeyboard = (direction: string | ArrowDirection) => {
   if (apiData.selectedWindow) {
     let newIndex = 0, selectedIndex = 0, selectedId = "";
     if (apiData.isWindowOpen && apiData?.openWindow) {
-      const mediaWins = apiData.mediaWindows.find(({ projectUid }) => projectUid === apiData.openWindow?.id)
-      const windows = [ apiData.openWindow, ...(mediaWins?.mediaWindows || []) ]
-      selectedIndex = windows.indexOf(apiData.selectedWindow)
-      console.log(selectedIndex)
+      selectedIndex = apiData.selectedVisibleOpenWindowIndex
       switch (direction) {
         case ArrowDirection.ArrowLeft:
           if (selectedIndex > 0) {
@@ -236,7 +196,7 @@ const selectWithKeyboard = (direction: string | ArrowDirection) => {
           }
           break;
         case ArrowDirection.ArrowRight:
-          if (selectedIndex < windows.length - 1) {
+          if (selectedIndex < apiData.visibleOpenWindows.length - 1) {
             newIndex = selectedIndex + 1;
           }
           break;
@@ -244,7 +204,7 @@ const selectWithKeyboard = (direction: string | ArrowDirection) => {
           newIndex = selectedIndex;
           console.log("direction not supported");
       }
-      selectedId = windows[newIndex].id
+      selectedId = (apiData.visibleOpenWindows[newIndex] as WindowData).id
     } else {
       selectedIndex = apiData.projectWindows.indexOf(
         apiData.selectedWindow
@@ -277,7 +237,6 @@ const selectWithKeyboard = (direction: string | ArrowDirection) => {
       }
       selectedId = apiData.projectWindows[newIndex].id;
     }
-    console.log(newIndex);
     if (newIndex !== selectedIndex) {
       apiData.selectWindow(selectedId);
     }

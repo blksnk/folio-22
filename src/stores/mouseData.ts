@@ -25,9 +25,13 @@ export const useMouseData = defineStore("mouseData", {
     isTouch: false,
   }),
   getters: {
-    normalizedMousePos: (state) => ({
+    normalizedMousePos: (state): Vector2 => ({
       x: (state.mousePos.x / window.innerWidth - 0.5) * 2,
       y: (state.mousePos.y / window.innerHeight - 0.5) * 2,
+    }),
+    mouseDelta: (state): Vector2 => ({
+      x: state.targetMousePos.x - state.mousePos.x,
+      y: state.targetMousePos.y - state.mousePos.y,
     }),
   },
   actions: {

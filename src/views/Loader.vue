@@ -4,9 +4,14 @@
     <div id="loader__progress__container">
       <h1 id="loader__progress">
         <div id="loader__progress__text">
-          {{formattedProgress }}
+          {{ formattedProgress }}
         </div>
       </h1>
+      <div id="loader__message__container">
+        <Transition name="loader__message">
+          <span :key="apiData.loadingProgress">{{ apiData.loadingMessage }}</span>
+        </Transition>
+      </div>
     </div>
   </fixed-frame>
 </template>
@@ -44,13 +49,6 @@ const onLoadingComplete = () => {
         } else {
           transitionToTutorial(() => hideLoader(hideElement));
         }
-        // const el = document.getElementById("loader");
-        // if (el) {
-        //   el.style.pointerEvents = "none";
-        //   setTimeout(() => {
-        //     el.style.display = "none";
-        //   }, 1000);
-        // }
       });
     }
   }
@@ -70,6 +68,7 @@ watch(
       duration: 0.6,
       delay: 0.6,
       lazy: true,
+      overwrite: 'auto',
       ease: Power2.easeInOut,
       onComplete: onLoadingComplete,
     });
@@ -77,7 +76,8 @@ watch(
       value: apiData.loadingProgress,
       duration: 0.6,
       delay: 0.6,
-      ease: Power2.easeInOut,
+      overwrite: 'auto',
+      ease: Power2.easeOut,
     });
   }
 );
@@ -92,6 +92,8 @@ watch(
 
   #loader__progress__container
     @include fl-center
+    gap: 12px
+    flex-direction: column
     position: absolute
     top: 0
     left: 0
@@ -103,6 +105,16 @@ watch(
       z-index: 1
       overflow: hidden
       font-weight: 700
+
+    #loader__message__container
+      width: max-content
+      oveflow: hidden
+
+    span
+      font-family: "Canela"
+      font-style: italic
+      color: $c-white
+      mix-blend-mode: difference
 
 #loader__background
   width: 100%

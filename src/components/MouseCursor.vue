@@ -16,6 +16,7 @@
 import { computed } from "vue";
 import { Vector2 } from "@/utils/layout.types";
 import { useMouseData } from "@/stores/mouseData";
+import { velocity } from "@/stores/gestureData";
 
 const mouseData = useMouseData();
 
@@ -25,8 +26,9 @@ const containerStyle = computed(
   () =>
     `transform: translate(${mouseData.mousePos.x - size.x / 2}px, ${
       mouseData.mousePos.y - size.y / 2
-    }px);`
+    }px) rotate(${mouseData.mouseDelta.x * 0.5}deg);`
 );
+
 </script>
 
 <style lang="sass">
@@ -65,6 +67,7 @@ const containerStyle = computed(
 
   &.active
     @include blur-bg
+    background-color: transparent
     transition: transform .2s ease-out 0s, background-color .3s linear 0s
     transform: scale(1)
 

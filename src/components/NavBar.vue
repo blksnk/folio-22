@@ -3,23 +3,22 @@ import { useApiData } from "@/stores/apiData";
 import { RouterLink } from "vue-router";
 import AppLogo from "./icons/AppLogo.vue";
 
-const apiData = useApiData()
+const apiData = useApiData();
 
 interface RouteMap {
   [path: string]: { onClick?: () => void | null; title: string };
 }
 
 const resetIndexView = () => {
-  console.log('aaaaa')
-  if(apiData.openWindow) {
-    apiData.closeWindow(apiData.openWindow.id)
+  if (apiData.openWindow) {
+    apiData.closeWindow(apiData.openWindow.id);
   }
-}
+};
 
 const routeElementsMap: RouteMap = {
   "/index": {
     title: "Index,\xa0",
-    onClick: resetIndexView
+    onClick: resetIndexView,
   },
   "/info": {
     title: "Information",
@@ -28,23 +27,24 @@ const routeElementsMap: RouteMap = {
 </script>
 
 <template>
-  
   <nav>
     <div id="nav__left">
       <router-link to="/index" @click.prevent="resetIndexView">
-        <AppLogo/>
+        <AppLogo />
       </router-link>
-      <span id="nav__title">Jean-Nicolas Veigel</span>
+      <span id="nav__title">
+        <span v-if="!apiData.isMobile">Jean-Nicolas </span>Veigel</span
+      >
     </div>
     <div id="nav__links">
       <RouterLink
-      v-for="[path, r] of Object.entries(routeElementsMap)"
-      class="link hover_underline"
-      :to="path"
-      :key="path"
-      @click="r.onClick"
-      >{{ r.title }}</RouterLink
-    >
+        v-for="[path, r] of Object.entries(routeElementsMap)"
+        :class="{ link: true, hover_underline: true }"
+        :to="path"
+        :key="path"
+        @click="r.onClick"
+        >{{ r.title }}</RouterLink
+      >
     </div>
   </nav>
 </template>
@@ -65,7 +65,7 @@ nav
     right: 22px
     left: 22px
 
-  #nav__links 
+  #nav__links
     @include fl-center
     align-items: baseline
     padding-top: 22px
@@ -77,11 +77,13 @@ nav
     height: 100%
     gap: 12px
 
+
     #nav__title
       color: $c-grey-6
       @include f-nav-link
       font-weight: 700
       text-transform: uppercase
+      padding-bottom: 6px
 
 .link
   color: $c-grey-6

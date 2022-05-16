@@ -1,6 +1,6 @@
 <template>
     <svg
-      viewBox="0 0 212 30"
+      :viewBox="viewBox"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       id="logo"
@@ -36,6 +36,14 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "@vue/reactivity";
+import { useApiData } from "@/stores/apiData";
+
+const apiData = useApiData();
+
+const viewBox = computed(() => 
+  apiData.isMobile ? '50 0 110 30' : '0 0 212 30'
+)
 </script>
 
 <style lang="sass">
@@ -49,7 +57,7 @@
 
   @media screen and (max-width: 600px)
     left: 22px
-    width: 100px
+    width: 50px
 
     path:nth-child(7), path:nth-child(6), path:nth-child(5)
       display: none

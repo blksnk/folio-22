@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import { RouterView, useRoute } from "vue-router";
-import { onMounted, ref, computed, onBeforeUnmount } from "vue";
+import { onMounted, computed, onBeforeUnmount, watch } from "vue";
 import { debounce } from "lodash";
-import { Vector2, ScreenDims } from "@/utils/layout.types";
+import { Vector2 } from "@/utils/layout.types";
 import { getScreenDims } from "@/utils/layout";
 import { clamp, largestAbsolute, isBetween, getScaleCoef } from "./utils/math";
 import GestureHandler, { VectorArgFunc, onMoveFn } from "./utils/gesture";
@@ -88,7 +88,6 @@ const onMove = (
 
   if (mouseData.mouseDown || fromTrackpad) {
     if (route.path === "/index" || apiData.showTutorial) {
-      console.log("onMove", route.path, apiData.showTutorial);
       gestureData.translating = false;
 
       velocity.x = delta.x * (3 - gestureData.zoomFactor);
@@ -108,7 +107,7 @@ const onTouch = (positions: Vector2[]) => {
     mouseData.isTouch = true;
   }
   if (positions.length === 1) {
-    onMoveGuarded.value(
+    onMove(
       { x: 0, y: 0 },
       {
         x: positions[0].x - mouseData.lastMousePos.x,
@@ -141,24 +140,9 @@ function onWheel({ x, y }: Vector2) {
       0.2,
       2.5
     );
-    console.log(target);
     gestureData.zoomTarget = target;
   }
 }
-
-// route guarded event listeners
-
-const onWheelGuarded = computed<VectorArgFunc>(() =>
-  route.path === "/index" || apiData.showTutorial
-    ? onWheel
-    : (vec: Vector2, delta?: Vector2) => null
-);
-
-const onMoveGuarded = computed<onMoveFn>(() =>
-  route.path === "/index" || apiData.showTutorial
-    ? onMove
-    : (vec: Vector2, delta: Vector2, fromTrackpad?: boolean) => null
-);
 
 // resize event handler
 
@@ -246,7 +230,6 @@ function translateToTargetPos() {
       velocity.x += dstToTarget.x * 0.005;
       velocity.y += (dstToTarget.y * 0.005) / gestureData.screenSize.ratio;
     } else if (gestureData.translating) {
-      console.log("reset translating", apiData.selectedId);
       gestureData.translating = false;
       apiData.setWindowSelection(apiData.selectedId);
     }
@@ -268,14 +251,14 @@ const animateLoop = () => {
 };
 
 onMounted(() => {
-  apiData.load(apiData.baseWindowSize);
+  apiData.load();
 
   gestures = new GestureHandler({
     onStart,
     onEnd,
-    onMove: onMoveGuarded.value,
+    onMove,
     onTouch,
-    onWheel: onWheelGuarded.value,
+    onWheel,
     onWheel_Native,
     onPinch: onWheel,
     preventDefault: true,
@@ -295,6 +278,11 @@ onBeforeUnmount(() => {
     gestures.destroy();
   }
 });
+
+watch(() => apiData.isMobile, () => {
+  onResize()
+  apiData.createLayout()
+})
 </script>
 
 <template>
