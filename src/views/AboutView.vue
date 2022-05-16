@@ -344,14 +344,17 @@ const contentStyle = computed(
     margin-top: 12px
     margin-bottom: 52px
     width: max-content
-    overflow: hidden
+    // overflow: hidden
 
     span
       transition: color .2s linear 0s, transform 0.3s ease-out 0.3s
       transform: translateY(0)
 
-    &:not(.visible) > *
-        transform: translateY(110%)
+      &:before
+        background-color: $c-primary
+
+    &:not(.visible) span
+        transform: translateY(100px)
         transition: color .2s linear 0s, transform 0.3s ease-out 0s,
 
     &:hover

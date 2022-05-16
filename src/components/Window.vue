@@ -195,6 +195,9 @@ const onButtonMouseLeave = () => emit("buttonLeave");
   opacity: 1
   z-index: 2
 
+  &:not(.selected), &.selected:not(.open)
+    cursor: pointer
+
   .window-img
     position: absolute
     top: 0

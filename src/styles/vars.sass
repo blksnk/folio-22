@@ -22,8 +22,8 @@ $b-style: $b-width solid $c-grey-6
 
 @mixin blur-bg
   background-color: rgba(18, 18, 18, .4)
-  backdrop-filter: blur(14px)
-  -webkit-backdrop-filter: blur(14px)
+  -webkit-backdrop-filter: blur(10px)
+  backdrop-filter: blur(10px)
 
 @mixin bordered
   border: $b-style
@@ -62,21 +62,21 @@ $b-style: $b-width solid $c-grey-6
     content: ""
     bottom: -2px
     left: 0
-    background-color: $c-white
+    right: 0
+    background: $c-white
     height: 1px
     width: 100%
     transform: scaleX(1)
     transition: transform .3s ease-in
     transform-origin: center left
-    mix-blend-mode: normal
 
   &:hover:before, &.router-link-active:before
     transform: scaleX(0)
     transform-origin: center right
 
-.hover_underline__parent:hover .underline:before
-  transform: scaleX(0)
-  transform-origin: center right
+// .hover_underline__parent:hover > .underline:before
+//   transform: scaleX(0)
+//   transform-origin: center right
 
 @mixin dotted
   background-image: radial-gradient($c-grey-2 1px, transparent 0)

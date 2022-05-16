@@ -204,8 +204,6 @@ class GestureHandler {
         y: (newDiff.y - oldDiff.y) * 0.5,
       };
 
-      console.log(deltas);
-
       // const pinchDelta = largestAbsolute(oldDiff.x, oldDiff.y) - largestAbsolute(newDiff.x, newDiff.y);
       this.onPinch(deltas);
     }
@@ -227,7 +225,6 @@ class GestureHandler {
   }
 
   _onTouchEnd(e: Event) {
-    console.log(e);
     // this.prevent(e);
     if (this.onEnd) {
       const E = e as TouchEvent;
@@ -237,7 +234,6 @@ class GestureHandler {
       this.touchPositions = this.getTouchPositions(this.touches);
       this.multitouch = this.touches.length > 1;
       this.touching = this.touches.length > 0;
-      console.log(this.touching);
       this.onEnd();
     }
   }

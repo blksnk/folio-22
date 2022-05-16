@@ -50,7 +50,6 @@ let gestures: GestureHandler | undefined;
 // gesture handling
 
 const onStart = (vec: Vector2) => {
-  console.log('onStart')
   mouseData.targetMousePos.x = vec.x;
   mouseData.targetMousePos.y = vec.y;
   // if(!mouseData.isTouch) {
@@ -74,7 +73,6 @@ const onStart = (vec: Vector2) => {
 };
 
 const onEnd = () => {
-  console.log('onEnd')
   if (gestureData.dragDezooming && !mouseData.isTouch) {
     setTimeout(() => {
       gestureData.zoomTarget = gestureData.preTranslateZoomTarget;
@@ -91,7 +89,6 @@ const onMove = (
   delta: Vector2,
   fromTrackpad?: boolean
 ) => {
-  console.log('onMove')
   mouseData.targetMousePos.x = fromPointer.x;
   mouseData.targetMousePos.y = fromPointer.y;
 
@@ -113,7 +110,6 @@ const onMove = (
 };
 
 const onTouch = (positions: Vector2[]) => {
-  console.log('onTouch', positions.length)
   if (!mouseData.isTouch) {
     mouseData.isTouch = true;
   }
@@ -137,7 +133,6 @@ const onWheel_Native = ({ x, y }: Vector2) => {
 };
 
 function onWheel({ x, y }: Vector2) {
-  console.log('onWheel')
   if (
     route.path === "/index" ||
     (apiData.showTutorial && !apiData.tutorialFinished)
