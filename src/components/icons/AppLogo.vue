@@ -64,7 +64,8 @@ const viewBox = computed(() =>
 
   #logo__star
     transition: fill .3s ease-out
-    &:hover
-      fill: $c-white
-      transition-duration: 0s
+
+  &:hover #logo__star
+    fill: $c-white
+    transition-duration: .1s
 </style>
