@@ -50,9 +50,12 @@ let gestures: GestureHandler | undefined;
 // gesture handling
 
 const onStart = (vec: Vector2) => {
+  console.log('onStart')
   mouseData.targetMousePos.x = vec.x;
   mouseData.targetMousePos.y = vec.y;
+  // if(!mouseData.isTouch) {
   mouseData.mouseDown = true;
+  // }
   if (
     !gestureData.translating &&
     !apiData.isWindowOpen &&
@@ -71,18 +74,24 @@ const onStart = (vec: Vector2) => {
 };
 
 const onEnd = () => {
-  gestureData.zoomTarget = gestureData.preTranslateZoomTarget;
-  setTimeout(() => {
-    gestureData.dragDezooming = false;
-  }, 10);
+  console.log('onEnd')
+  if (gestureData.dragDezooming && !mouseData.isTouch) {
+    setTimeout(() => {
+      gestureData.zoomTarget = gestureData.preTranslateZoomTarget;
+      gestureData.dragDezooming = false;
+    }, 10);
+
+  }
   mouseData.mouseDown = false;
 };
 
 const onMove = (
+  
   fromPointer: Vector2,
   delta: Vector2,
   fromTrackpad?: boolean
 ) => {
+  console.log('onMove')
   mouseData.targetMousePos.x = fromPointer.x;
   mouseData.targetMousePos.y = fromPointer.y;
 
@@ -100,25 +109,22 @@ const onMove = (
   if (mouseData.mouseDown) {
     gestureData.setTargetScrollPos({ x: -delta.x * 1.5, y: -delta.y * 1.5 });
   }
+
 };
 
 const onTouch = (positions: Vector2[]) => {
+  console.log('onTouch', positions.length)
   if (!mouseData.isTouch) {
     mouseData.isTouch = true;
   }
   if (positions.length === 1) {
     onMove(
-      { x: 0, y: 0 },
+      positions[0],
       {
         x: positions[0].x - mouseData.lastMousePos.x,
         y: positions[0].y - mouseData.lastMousePos.y,
       }
     );
-    const deltas = {
-      x: (mouseData.targetMousePos.x - positions[0].x) * SCROLL_MULTIPLIER,
-      y: (mouseData.targetMousePos.y - positions[0].y) * SCROLL_MULTIPLIER,
-    };
-    gestureData.setTargetScrollPos(deltas);
     mouseData.targetMousePos.x = positions[0].x;
     mouseData.targetMousePos.y = positions[0].y;
     mouseData.lastMousePos.x = positions[0].x;
@@ -131,6 +137,7 @@ const onWheel_Native = ({ x, y }: Vector2) => {
 };
 
 function onWheel({ x, y }: Vector2) {
+  console.log('onWheel')
   if (
     route.path === "/index" ||
     (apiData.showTutorial && !apiData.tutorialFinished)
@@ -174,8 +181,8 @@ function decreaseVelocity() {
 function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   return Math.max(
     Math.abs(gestureData.screenSize.center[vectorName] - value) /
-      gestureData.screenSize[vectorName] +
-      minMoveFactor,
+    gestureData.screenSize[vectorName] +
+    minMoveFactor,
     0
   );
 }

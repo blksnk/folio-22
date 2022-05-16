@@ -50,6 +50,7 @@ class GestureHandler {
   private oldTouches: Touch[] = [];
   private mousePos = reactive<Vector2>({ x: 0, y: 0 });
   private pinching = false;
+  private touching = false;
   private multitouch = false;
   public isTrackpad = false;
 
@@ -199,9 +200,11 @@ class GestureHandler {
       };
 
       const deltas = {
-        x: (oldDiff.x - newDiff.x) * 0.02,
-        y: (oldDiff.y - newDiff.y) * 0.02,
+        x: (newDiff.x - oldDiff.x) * 0.5,
+        y: (newDiff.y - oldDiff.y) * 0.5,
       };
+
+      console.log(deltas);
 
       // const pinchDelta = largestAbsolute(oldDiff.x, oldDiff.y) - largestAbsolute(newDiff.x, newDiff.y);
       this.onPinch(deltas);
@@ -210,23 +213,31 @@ class GestureHandler {
 
   _onTouchStart(e: Event) {
     // this.prevent(e);
-    const touchEvent = e as TouchEvent;
+    const E = e as TouchEvent;
     this.oldTouches = [...this.touches];
-    this.touches = [...touchEvent.touches];
+    this.touches = [...E.touches];
     this.touchPositions = this.getTouchPositions(this.touches);
     this.multitouch = this.touches.length > 1;
-    if (this.onStart) this.onStart(this.touchPositions[0]);
+    if (this.onStart && !this.touching) {
+      this.touching = true;
+      this.onStart(this.touchPositions[0]);
+    }
 
     if (this.onTouch) this.onTouch(this.touchPositions);
   }
 
   _onTouchEnd(e: Event) {
+    console.log(e);
     // this.prevent(e);
     if (this.onEnd) {
+      const E = e as TouchEvent;
+      this.oldTouches = [...this.touches];
       this.removeTouches(e);
-      this.touchPositions = [];
-      this.touches = [];
-      this.oldTouches = [];
+      // this.touches = [...E.touches];
+      this.touchPositions = this.getTouchPositions(this.touches);
+      this.multitouch = this.touches.length > 1;
+      this.touching = this.touches.length > 0;
+      console.log(this.touching);
       this.onEnd();
     }
   }
@@ -235,13 +246,13 @@ class GestureHandler {
     this.prevent(e);
     this.removeTouches(e);
     this.touchPositions = [];
-    if (this.onTouch) this.onTouch(this.touchPositions);
 
     if (this.onEnd) this.onEnd();
   }
 
   _onTouchMove(e: Event) {
     const touchEvent = e as TouchEvent;
+    this.prevent(e);
     this.oldTouches = this.touches;
 
     this.touches = [...touchEvent.targetTouches];
