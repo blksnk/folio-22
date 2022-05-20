@@ -14,7 +14,6 @@
       :thumbnail="window.thumbnail"
       :open="window.open || isMediaWindow(window.id)"
       :hidden="window.hidden"
-      :screenSize="screenSize"
       :tags="window?.tags"
       @click="() => onWindowClick(window.id)"
       @mouseover="onMouseOver(window.id)"
@@ -23,31 +22,17 @@
       @buttonLeave="onMouseOver(window.id)"
       @open="onOpen(window.id)"
     />
-    <Minimap
-      :items="minimapItems"
-      :screenSize="screenSize"
-      :onSelect="apiData.selectWindow"
-    />
+    <Minimap/>
     <ProjectText/>
   </FixedFrame>
 </template>
 
-<script lang="ts">
-export const getScreenDims = () => ({
-  x: window.innerWidth,
-  y: window.innerHeight,
-  center: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-  ratio: window.innerWidth / window.innerHeight,
-});
-</script>
-
 <script setup lang="ts">
 import {
-  reactive,
   onBeforeUnmount,
   onMounted,
-  computed,
-} from "vue";
+} from "@vue/runtime-dom";
+import { reactive } from '@vue/reactivity'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
 
 import FixedFrame from "@/components/FixedFrame.vue";
@@ -56,10 +41,7 @@ import Minimap from "@/components/Minimap.vue";
 
 import {
   createBoundaries,
-  keepInBoundaries,
   isMediaWindow,
-  generateWindowSize,
-  computeZoomTarget,
 } from "@/utils/layout";
 import {
   ScreenDims,
@@ -76,9 +58,6 @@ import ProjectText from "@/components/ProjectText.vue";
 const mouseData = useMouseData();
 const apiData = useApiData();
 const gestureData = useGestureData();
-
-let screenSize = reactive<ScreenDims>(getScreenDims());
-
 
 const initialBoundaries = reactive<Boundary>({
   top: -10000,
@@ -158,22 +137,6 @@ function onMouseOver(windowId: string) {
 function onMouseLeave() {
   mouseData.showCursor = false;
 }
-
-const minimapItems = computed(() =>
-  apiData.allWindows.map(({ transform, thumbnail, selected, id, hidden }) => ({
-    transform: {
-      x: transform.x,
-      y: transform.y,
-    },
-    ratio: thumbnail.large.aspectRatio,
-    selected,
-    height: thumbnail.large.height,
-    width: thumbnail.large.width,
-    hidden,
-    id,
-  }))
-);
-
 function setInitalBoundaries() {
   const bounds = createBoundaries(
     apiData.projectWindows,

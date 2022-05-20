@@ -6,7 +6,7 @@
       :key="'item' + index"
       :style="item.style"
       :class="{ active: item.selected, hidden: item.hidden }"
-      @click="onSelect(item.id)"
+      @click="apiData.selectWindow(item.id)"
       @mouseover="onMouseOver"
     ></div>
   </div>
@@ -18,6 +18,7 @@ import { generateWindowSize } from "@/utils/layout";
 import { Vector2, ScreenDims } from "@/utils/layout.types"
 import { useApiData } from "@/stores/apiData";
 import { useMouseData } from '@/stores/mouseData'
+import { useGestureData } from "@/stores/gestureData";
 
 interface MinimapItem {
   transform: Vector2;
@@ -29,11 +30,6 @@ interface MinimapItem {
   hidden: boolean;
 }
 
-interface MinimapProps {
-  screenSize: ScreenDims;
-  onSelect: (id: string) => void;
-}
-
 interface MinimapItemProps {
   style: string;
   id: string;
@@ -42,7 +38,7 @@ interface MinimapItemProps {
 }
 
 const mouseData = useMouseData()
-
+const gestureData = useGestureData()
 const apiData = useApiData()
 
 const items = computed<MinimapItem[]>(() =>
@@ -60,18 +56,16 @@ const items = computed<MinimapItem[]>(() =>
   }))
 );
 
-const props = defineProps<MinimapProps>();
-
 const HEIGHT = 150;
 const SCALE_FACTOR = 6;
 const ITEM_SIZE = HEIGHT / SCALE_FACTOR;
 
 
-const WIDTH = computed(() => HEIGHT * props.screenSize.ratio);
+const WIDTH = computed(() => HEIGHT * gestureData.screenSize.ratio);
 
 const renderRatio = computed<Vector2>(() => ({
-  x: WIDTH.value / props.screenSize.x,
-  y: HEIGHT / props.screenSize.y,
+  x: WIDTH.value / gestureData.screenSize.x,
+  y: HEIGHT / gestureData.screenSize.y,
 }));
 
 const itemScales = computed(() => items.value.map(({ ratio }) => {

@@ -60,6 +60,7 @@ import WindowButton from "./WindowButton.vue";
 import Image from "./ui/Image.vue";
 import { ScreenDims } from "@/utils/layout.types";
 import { useApiData } from "@/stores/apiData";
+import { useGestureData } from "@/stores/gestureData";
 
 export interface WindowProps {
   transform: Transform;
@@ -70,12 +71,12 @@ export interface WindowProps {
   open: boolean;
   draggable?: boolean;
   hidden: boolean;
-  screenSize: ScreenDims;
   tags?: ProjectTag[];
 }
 const props = defineProps<WindowProps>();
 
 const apiData = useApiData()
+const gestureData = useGestureData()
 
 const windowTop = ref<HTMLElement | null>(null);
 
@@ -112,9 +113,9 @@ const onClick = () => {
 // check for window visibility
 const isVisible = (t: Transform): boolean =>
   t.x + size.value.x > -size.value.x / 2 &&
-  t.x - size.value.x / 2 < props.screenSize.x * 2 &&
+  t.x - size.value.x / 2 < gestureData.screenSize.x * 2 &&
   t.y + size.value.y > -size.value.y / 2 &&
-  t.y - size.value.y / 2 < props.screenSize.y * 2;
+  t.y - size.value.y / 2 < gestureData.screenSize.y * 2;
 
 
 const windowTransform = ref({ x: 0, scale: 0, y: 0 });
