@@ -155,3 +155,20 @@ export const hideTutorial = (onComplete?: () => void) => {
     duration: 1.2,
   });
 };
+
+export const revealNavbar = (onComplete?: () => void) => {
+  const tl = gsap.timeline({
+    onComplete,
+  });
+  tl.fromTo(
+    "nav",
+    {
+      y: 100,
+    },
+    {
+      y: 0,
+      duration: 0.6,
+      ease: Power2.easeOut,
+    }
+  );
+};

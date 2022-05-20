@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineEmits } from "vue";
+import { computed } from "@vue/reactivity";
 import WindowButton from "@/components/WindowButton.vue";
 import { useApiData } from "@/stores/apiData";
 import { useRoute } from "vue-router";

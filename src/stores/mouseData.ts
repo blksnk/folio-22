@@ -8,9 +8,10 @@ export interface MouseProps {
   lastMousePos: Vector2;
   mouseDown: boolean;
   showCursor: boolean;
-  cursorText: string;
+  cursorText: string | undefined;
   cursorIcon: string | undefined;
   isTouch: boolean;
+  transparent: boolean;
 }
 
 export const useMouseData = defineStore("mouseData", {
@@ -23,6 +24,7 @@ export const useMouseData = defineStore("mouseData", {
     cursorText: "Select",
     cursorIcon: "eye-outline",
     isTouch: false,
+    transparent: false,
   }),
   getters: {
     normalizedMousePos: (state): Vector2 => ({

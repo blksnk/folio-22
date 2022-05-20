@@ -131,8 +131,9 @@ export const useApiData = defineStore("apiData", {
       try {
         const imgUrls = this.allWindows
           .map(({ thumbnail }) =>
-            Object.values(thumbnail)
-              .map(({ url }) => url)
+            Object.entries(thumbnail)
+              .filter(([key, val]) => key !== "original")
+              .map(([_, { url }]) => url)
               .filter((url) => url !== undefined)
           )
           .flat(1);

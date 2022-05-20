@@ -130,6 +130,7 @@ const onMouseOver = () => {
 
   @media screen and (max-width: 600px)
     left: 22px
+    bottom: 22px
 
   .minimap__item
     position: absolute

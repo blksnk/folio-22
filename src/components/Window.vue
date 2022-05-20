@@ -48,15 +48,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watchEffect, reactive, onMounted, watch } from "vue";
+import { computed, ref, watchEffect, reactive, } from "vue";
 import { generateWindowSize } from "@/utils/layout";
 import { Vector2, Transform } from "@/utils/layout.types";
-import { isBetween } from "@/utils/math";
 import { ImageFormats, ProjectTag } from "@/utils/api.types";
 import {
   createWindowTransformStyle,
   createTransformString,
-  createWindowWrapperRotation,
 } from "@/utils/layout";
 import WindowButton from "./WindowButton.vue";
 import Image from "./ui/Image.vue";

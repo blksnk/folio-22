@@ -203,33 +203,9 @@ const onSkip = () => {
   100%
     transform: scale(1)
 
-@keyframes glow
-  0%
-    transform: scale(1)
-    opacity: 1
-  100%
-    transform: scale(2)
-    opacity: 0
-
 @mixin appearing
   animation: grow .6s ease-out 0s
   transform-origin: center center
-
-@mixin glowing
-  &:before
-    content: ""
-    position: absolute
-    top: 0
-    left: 0
-    bottom: 0
-    right: 0
-    border-radius: 50%
-    z-index: 1
-    translate-origin: center
-    opacity: 1
-    border: 1px solid $c-grey-3
-
-    animation: glow 2s ease-out 0s infinite
 
 
 #tutorial

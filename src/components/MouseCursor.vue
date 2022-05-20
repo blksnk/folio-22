@@ -4,10 +4,11 @@
       id="cursor"
       :class="{
         active: mouseData.showCursor,
+        transparent: mouseData.transparent,
       }"
     >
       <ion-icon v-if="mouseData.cursorIcon" :name="mouseData.cursorIcon" id="cursor__icon"></ion-icon>
-      <span v-else id="cursor__text">{{ mouseData.cursorText }}</span>
+      <span v-else-if="mouseData.cursorText" id="cursor__text">{{ mouseData.cursorText }}</span>
     </div>
   </div>
 </template>
@@ -16,11 +17,10 @@
 import { computed } from "vue";
 import { Vector2 } from "@/utils/layout.types";
 import { useMouseData } from "@/stores/mouseData";
-import { velocity } from "@/stores/gestureData";
 
 const mouseData = useMouseData();
 
-const size: Vector2 = { x: 130, y: 130 };
+const size: Vector2 = { x: 110, y: 110 };
 
 const containerStyle = computed(
   () =>
@@ -34,8 +34,8 @@ const containerStyle = computed(
 <style lang="sass">
 
 #cursor__container
-  height: 130px
-  width: 130px
+  height: 110px
+  width: 110px
   position: fixed
   transform-origin: center center
   z-index: 3
@@ -43,13 +43,13 @@ const containerStyle = computed(
 
 #cursor
   @include fl-center
-  height: 130px
-  width: 130px
+  height: 110px
+  width: 110px
   border-radius: 50%
   position: fixed
   border: $b-style
   transition: transform .3s ease-out .0s, background-color .3s linear .3s
-  transform: scale(0.1)
+  transform: scale(0.15)
   background-color: $c-white
 
   #cursor__text
@@ -65,8 +65,10 @@ const containerStyle = computed(
     font-size: 36px
     --ionicon-stroke-weight: 1px
 
-  &.active
+  &.active:not(.transparent)
     @include blur-bg
+  
+  &.active
     background-color: transparent
     transition: transform .2s ease-out 0s, background-color .3s linear 0s
     transform: scale(1)

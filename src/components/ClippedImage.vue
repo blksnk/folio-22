@@ -11,7 +11,14 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onBeforeUnmount, watchEffect, ref, defineProps } from "vue";
+import {
+  computed,
+  onBeforeUnmount,
+  watchEffect,
+  ref,
+  defineProps,
+  onMounted,
+} from "vue";
 import { useGestureData } from "@/stores/gestureData";
 import { useMouseData } from "@/stores/mouseData";
 import { ImageFormat, ImageFormats } from "@/utils/api.types";
@@ -20,36 +27,66 @@ import { createRects, preloadImage, computeBoundingRect } from "@/utils/visual";
 import { RectProps } from "@/utils/visual.types";
 import { useApiData } from "@/stores/apiData";
 import { Vector2 } from "@/utils/layout.types";
+import { debounce } from "lodash";
 
 const mouseData = useMouseData();
 const gestureData = useGestureData();
-const apiData = useApiData()
+const apiData = useApiData();
 
 let rects = ref<RectProps[]>([]);
 
 const imgFormats = ref<ImageFormats | undefined>();
 
+const imgSize = ref<Vector2>({ x: 100, y: 100 });
+const baseImgFormat = ref<ImageFormat>();
 
-
-const imgSize = ref<Vector2>({ x: 100, y: 100 })
-
-const createImageSize = ({ width, height } : ImageFormat): Vector2 => {
-  const x = apiData.isMobile ? window.innerWidth - 100 : (window.innerWidth - 124) * 0.4
+const createImageSize = ({ width, height }: ImageFormat): Vector2 => {
+  const x = apiData.isMobile
+    ? window.innerWidth - 100
+    : (window.innerWidth - 124) * 0.4;
   const ratio = width / height;
-  const y = x / ratio
+  const y = x / ratio;
   return {
-    x, y
-  }
-}
+    x,
+    y,
+  };
+};
 
-const TRANSLATE_AMOUNT = computed(() => apiData.isMobile ? -2 : -10)
+const TRANSLATE_AMOUNT = computed(() => (apiData.isMobile ? -2 : -10));
 
-preloadImage(15).then((i) => {
-  if (i) {
-    imgFormats.value = i;
-    imgSize.value = createImageSize(i.large)
-    rects.value = createRects(apiData.isMobile ? 3 : 5, imgSize.value.x, imgSize.value.y);
+const createImage = () => {
+  preloadImage(15).then((i) => {
+    if (i) {
+      imgFormats.value = i;
+      baseImgFormat.value = i.large;
+      imgSize.value = createImageSize(i.large);
+      rects.value = createRects(
+        apiData.isMobile ? 3 : 5,
+        imgSize.value.x,
+        imgSize.value.y
+      );
+    }
+  });
+};
+
+const onResize = debounce(() => {
+  if (baseImgFormat.value) {
+    imgSize.value = createImageSize(baseImgFormat.value);
+    rects.value = createRects(
+      apiData.isMobile ? 3 : 5,
+      imgSize.value.x,
+      imgSize.value.y
+    );
   }
+}, 500);
+
+onMounted(() => {
+  createImage();
+  window.addEventListener("resize", onResize);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", onResize);
 });
 
 const boundingRect = computed<RectProps>(() =>
@@ -62,14 +99,14 @@ const imgStyles = computed(() =>
     width: px(rect.width),
     top: px(rect.y - boundingRect.value.y),
     left: px(rect.x - boundingRect.value.x),
-    backgroundImage: `url(${imgFormats.value?.large.url})`,
+    backgroundImage: `url(${baseImgFormat.value?.url})`,
     backgroundSize: `${px(imgSize.value.x)} ${px(imgSize.value.y)}`,
     backgroundPosition: px(-rect.x) + " " + px(-rect.y),
     transform: createTransformString({
       x: TRANSLATE_AMOUNT.value * mouseData.normalizedMousePos.x * (index + 1),
       y:
         TRANSLATE_AMOUNT.value * mouseData.normalizedMousePos.y * (index + 1) -
-        gestureData.scrollPos.y * 0.3 * ((index + 1) * .5),
+        gestureData.scrollPos.y * 0.3 * ((index + 1) * 0.5),
       scale: 1,
     }),
   }))

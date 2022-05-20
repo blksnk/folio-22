@@ -12,7 +12,6 @@
 </template>
 
 <script setup lang="ts">
-import { defineEmits } from "vue";
 interface WindowButtonProps {
   enabled?: boolean;
   active?: boolean;

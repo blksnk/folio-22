@@ -39,6 +39,35 @@
           <span>{{ job.role }}</span>
         </a>
       </div>
+
+      <h3 class="about__heading">Education</h3>
+      <div class="table">
+        <div class="table__header reversed">
+          <span>Year</span>
+          <span>Diploma</span>
+          <span>School</span>
+        </div>
+        <div class="table__row reversed">
+          <span>2023</span>
+          <span>Art Direction Bachelor</span>
+          <span>Sup de création,<br />Paris</span>
+        </div>
+        <div class="table__row reversed">
+          <span>2018</span>
+          <span>Web Development Bootcamp</span>
+          <span>IronHack,<br />Paris</span>
+        </div>
+        <div class="table__row reversed">
+          <span>2018</span>
+          <span>DUT Business & Marketing</span>
+          <span>IUT Robert Schuman,<br />Strasbourg</span>
+        </div>
+        <div class="table__row reversed">
+          <span>2017</span>
+          <span>Baccalauréat ES</span>
+          <span>Gymnase Jean Sturm,<br />Strasbourg</span>
+        </div>
+      </div>
       <h3 class="about__heading">Spoken <em>languages</em></h3>
       <div class="table">
         <div class="table__header reversed">
@@ -72,32 +101,21 @@
           <span>A1</span>
         </div>
       </div>
-      <h3 class="about__heading">Education</h3>
-      <div class="table">
-        <div class="table__header reversed">
-          <span>Year</span>
-          <span>Diploma</span>
-          <span>School</span>
-        </div>
-        <div class="table__row reversed">
-          <span>2023</span>
-          <span>Art Direction Bachelor</span>
-          <span>Sup de création,<br />Paris</span>
-        </div>
-        <div class="table__row reversed">
-          <span>2018</span>
-          <span>Web Development Bootcamp</span>
-          <span>IronHack,<br />Paris</span>
-        </div>
-        <div class="table__row reversed">
-          <span>2018</span>
-          <span>DUT Business & Marketing</span>
-          <span>IUT Robert Schuman,<br />Strasbourg</span>
-        </div>
-        <div class="table__row reversed">
-          <span>2017</span>
-          <span>Baccalauréat ES</span>
-          <span>Gymnase Jean Sturm,<br />Strasbourg</span>
+      <h3 class="about__heading">Honed <em>skills</em></h3>
+      <div class="table skills">
+        <div class="table__row reversed no__gap">
+          <div class="table__header reversed no__gap">
+            <span>Category</span>
+          </div>
+          <div class="table__header reversed no__gap">
+            <span>Skill</span>
+          </div>
+          <template v-for="{ cat, skills } in allSkills">
+            <template v-for="(skill, index) in skills">
+              <span v-if="index === 0" class="skill__cat">{{ cat }}</span>
+              <span class="skill">{{ skill }}</span>
+            </template>
+          </template>
         </div>
       </div>
       <h2 class="about__heading" id="contact__title">
@@ -158,7 +176,7 @@ import { px } from "@/utils/layout";
 import ClippedImage from "@/components/ClippedImage.vue";
 import { useGestureData } from "@/stores/gestureData";
 
-import { jobs } from "@/utils/jobs";
+import { jobs, allSkills } from "@/utils/aboutData";
 import ES from "@/components/icons/flags/ES.vue";
 import DE from "@/components/icons/flags/DE.vue";
 import EN from "@/components/icons/flags/EN.vue";
@@ -305,6 +323,10 @@ const contentStyle = computed(
       grid-template-columns: 2fr 2fr 1fr
       margin-top: 12px
       align-items: baseline
+    
+      &:not(.no__gap)
+        column-gap: 12px
+        row-gap: 12px
 
       &.reversed
         grid-template-columns: 1fr 2fr 2fr
@@ -317,6 +339,9 @@ const contentStyle = computed(
     .table__row
       transition: color .2s linear 0s
       overflow: hidden
+
+      .table__header
+        margin-bottom: 12px
 
       & > *
         transform: translateY(0)
@@ -331,6 +356,18 @@ const contentStyle = computed(
 
       .flag
         align-self: center
+
+      .skill
+        grid-column-start: 2
+        margin-top: 3px
+
+      .skill__cat
+        margin-top: 12px
+        grid-row: auto / span 2
+        grid-column: 1 / span 1
+
+    &.skills .table__row, &.skills .table__header
+      grid-template-columns: auto 1fr
 
   #credits
     @include f-project-title__light

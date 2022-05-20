@@ -42,3 +42,59 @@ export const jobs: Job[] = [
   { client: getClient("Wolfox"), role: "Web Development", year: 2019 },
   { client: getClient("CIC Bank"), role: "Bank Teller", year: 2018 },
 ];
+
+export default ["HTML", "Figma", "Blender", ""];
+
+export enum SkillCategories {
+  WebDev = "Web Development",
+  Adobe = "Adobe Creative Suite",
+  UXUI = "UX / UI Design",
+  _3D = "3D Modeling",
+  Communication = "Communication",
+}
+
+export type SkillCategory = {
+  cat: SkillCategories;
+  skills: string[];
+};
+
+export const allSkills: SkillCategory[] = [
+  {
+    cat: SkillCategories.Adobe,
+    skills: [
+      "Photoshop",
+      "Premiere Pro",
+      "Illustrator",
+      "Lightroom",
+      "InDesign",
+    ].sort(),
+  },
+  {
+    cat: SkillCategories.WebDev,
+    skills: [
+      "HTML",
+      "CSS",
+      "Javascript",
+      "React",
+      "React Native",
+      "Vue",
+      "Redux",
+      "SQL",
+      "Swift",
+      "MongoDB",
+      "Express",
+    ].sort(),
+  },
+  {
+    cat: SkillCategories.UXUI,
+    skills: ["Figma", "Adobe XD", "Webflow", "Agile Workflow"].sort(),
+  },
+  {
+    cat: SkillCategories._3D,
+    skills: ["Blender", "Octane Renderer"],
+  },
+  {
+    cat: SkillCategories.Communication,
+    skills: ["Discord", "Slack", "Notion"],
+  },
+].sort((a, b) => (a.cat < b.cat ? -1 : 1));

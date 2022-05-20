@@ -28,6 +28,7 @@
       :screenSize="screenSize"
       :onSelect="apiData.selectWindow"
     />
+    <ProjectText/>
   </FixedFrame>
 </template>
 
@@ -70,6 +71,7 @@ import { onIndexEnter, onIndexLeave } from "@/utils/transition";
 import { useApiData } from "@/stores/apiData";
 import { useMouseData } from "@/stores/mouseData";
 import { useGestureData } from "@/stores/gestureData";
+import ProjectText from "@/components/ProjectText.vue";
 
 const mouseData = useMouseData();
 const apiData = useApiData();

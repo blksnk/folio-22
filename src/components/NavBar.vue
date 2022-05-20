@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { useApiData } from "@/stores/apiData";
-import { RouterLink } from "vue-router";
+import { useMouseData } from "@/stores/mouseData";
+import { onMounted, watch } from "@vue/runtime-dom";
+import { RouterLink, useRoute } from "vue-router";
 import AppLogo from "./icons/AppLogo.vue";
+import { revealNavbar } from "@/utils/transition";
 
 const apiData = useApiData();
+const mouseData = useMouseData();
+const route = useRoute();
 
 interface RouteMap {
   [path: string]: { onClick?: () => void | null; title: string };
@@ -15,6 +20,22 @@ const resetIndexView = () => {
   }
 };
 
+const onHover = (path: string) => {
+  console.log("hover");
+  if (route.path !== path) {
+    mouseData.transparent = true;
+    mouseData.showCursor = true;
+    mouseData.cursorIcon = undefined;
+    mouseData.cursorText = undefined;
+  }
+};
+
+const onLeave = () => {
+  console.log("out");
+  mouseData.showCursor = false;
+  mouseData.transparent = false;
+};
+
 const routeElementsMap: RouteMap = {
   "/index": {
     title: "Index,\xa0",
@@ -24,6 +45,7 @@ const routeElementsMap: RouteMap = {
     title: "Information",
   },
 };
+watch(() => apiData.loaderAnimationFinished, revealNavbar);
 </script>
 
 <template>
@@ -43,6 +65,8 @@ const routeElementsMap: RouteMap = {
         :to="path"
         :key="path"
         @click="r.onClick"
+        @mouseout="onLeave"
+        @mouseover="onHover(path)"
         >{{ r.title }}</RouterLink
       >
     </div>
@@ -60,6 +84,7 @@ nav
   right: 32px
   left: 32px
   bottom: 0px
+  transform: translateY(100px)
 
   @media screen and (max-width: 600px)
     right: 22px
