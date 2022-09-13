@@ -4,7 +4,12 @@ import {
   createAllProjectsMediaWindows,
   createProjectWindows,
 } from "@/utils/layout";
-import { WindowData, ProjectMediaWindows, Vector2 } from "@/utils/layout.types";
+import {
+  WindowData,
+  ProjectMediaWindows,
+  Vector2,
+  Boundary
+} from "@/utils/layout.types";
 import { preloadImg } from "@/utils/visual";
 import { computeZoomTarget, generateWindowSize } from "@/utils/layout";
 import { defineStore } from "pinia";
@@ -15,11 +20,17 @@ type Callback = (arg: any) => void;
 const apiDataWorker = new Worker("/apiDataWorker.js");
 const windowDataWorker = new Worker("/windowDataWorker.js");
 
+export interface IntersectionEntry {
+  isVisible: boolean;
+  id: string;
+}
+
 export const useApiData = defineStore("apiData", {
   state: (): {
     projects: Project[];
     projectWindows: WindowData[];
     mediaWindows: ProjectMediaWindows[];
+    projectWindowBounds: Boundary;
     loaded: boolean;
     imgsPreloaded: boolean;
     isMobile: boolean;
@@ -34,16 +45,27 @@ export const useApiData = defineStore("apiData", {
     zoomTarget: number;
     preTranslateZoomTarget: number;
     zoomFactor: number;
+    windowVisibilities: IntersectionEntry[];
+    outOfBounds: boolean;
+    lastVisibleWindowId: string | null;
+    observer: IntersectionObserver | null;
   } => ({
     projects: [],
     projectWindows: [],
     mediaWindows: [],
+    windowVisibilities: [],
     loaded: false,
     imgsPreloaded: false,
     isMobile: window.innerWidth < 600,
     baseWindowSize: {
       x: window.innerWidth < 600 ? 300 : 500,
       y: window.innerWidth < 600 ? 300 : 500,
+    },
+    projectWindowBounds: {
+      top: -window.innerHeight,
+      left: -window.innerWidth,
+      right: window.innerWidth,
+      bottom: window.innerHeight,
     },
     selectedId: "0",
     loaderAnimationFinished: false,
@@ -55,6 +77,9 @@ export const useApiData = defineStore("apiData", {
     zoomTarget: window.innerWidth < 600 ? 0.8 : 0.6,
     preTranslateZoomTarget: window.innerWidth < 600 ? 0.8 : 0.6,
     zoomFactor: 1,
+    outOfBounds: false,
+    lastVisibleWindowId: null,
+    observer: null,
   }),
   getters: {
     allWindows: (state) => [
@@ -68,16 +93,18 @@ export const useApiData = defineStore("apiData", {
     selectedWindow(state): WindowData | undefined {
       return this.allWindows.find((el) => el.id === state.selectedId);
     },
-    visibleOpenWindows(state): (WindowData | undefined)[] {
+    visibleOpenWindows(state): (WindowData)[] {
       const mediaWins = state.mediaWindows.find(
         ({ projectUid }) => projectUid === this.openWindow?.id
       );
-      const windows = [this.openWindow, ...(mediaWins?.mediaWindows || [])];
+      const windows = [ this.openWindow, ...(mediaWins?.mediaWindows || []) ].filter((window): window is WindowData => window !== undefined);
       return windows;
     },
-    selectedVisibleOpenWindowIndex(state): number {
+    selectedVisibleOpenWindowIndex(): number {
+      if(!this.selectedWindow) return -1;
       return this.visibleOpenWindows.indexOf(this.selectedWindow);
     },
+    visibleWindows: (state) => state.windowVisibilities.filter(({ isVisible }) => isVisible)
   },
   actions: {
     async load(onSuccess?: Callback, onError?: Callback) {
@@ -107,6 +134,9 @@ export const useApiData = defineStore("apiData", {
           if (e.data.mediaWindows) {
             this.mediaWindows = e.data.mediaWindows;
           }
+          if(e.data.projectWindowBounds) {
+            this.projectWindowBounds = e.data.projectWindowBounds as Boundary;
+          }
           if (e.data.progress) {
             this.loadingProgress = e.data.progress;
             if (e.data.progress === 90) {
@@ -132,8 +162,8 @@ export const useApiData = defineStore("apiData", {
         const imgUrls = this.allWindows
           .map(({ thumbnail }) =>
             Object.entries(thumbnail)
-              .filter(([key, val]) => key !== "original")
-              .map(([_, { url }]) => url)
+              .filter(([ key, val ]) => key !== "original")
+              .map(([ _, { url } ]) => url)
               .filter((url) => url !== undefined)
           )
           .flat(1);
@@ -184,7 +214,8 @@ export const useApiData = defineStore("apiData", {
       targetId: string,
       forceShowCursor?: boolean,
       event?: MouseEvent,
-      zt?: number
+      zt?: number,
+      forceSelect?: boolean,
     ) {
       const gestureData = useGestureData();
 
@@ -195,9 +226,10 @@ export const useApiData = defineStore("apiData", {
       }
       if (
         window &&
-        (this.selectedId !== targetId || this.openWindow?.id === targetId) &&
+        (this.selectedId !== targetId || this.openWindow?.id === targetId || forceSelect) &&
         !window.hidden
       ) {
+        console.log("translate to window", targetId)
         this.selectedId = targetId;
         gestureData.translating = true;
 

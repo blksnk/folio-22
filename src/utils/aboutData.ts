@@ -22,12 +22,14 @@ const clients: Client[] = [
   { name: "IronHack", website: "https://ironhack.com" },
   { name: "TaxFix", website: "https://taxfix.de" },
   { name: "WeCheers", website: "https://wecheers.fr" },
+  { name: "Ublo", website: "https://ublo.immo" }
 ];
 
 const getClient = (name: Client["name"]): Client =>
   clients.find((c) => c.name === name) || notFoundClient;
 
 export const jobs: Job[] = [
+  { client: getClient("Ublo"), role: "Web Development", year: 2022 },
   { client: getClient("WeCheers"), role: "App Development", year: 2022 },
   { client: getClient("WeCheers"), role: "UX/UI Design", year: 2021 },
   { client: getClient("TaxFix"), role: "UX/UI Design", year: 2021 },

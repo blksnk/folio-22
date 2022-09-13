@@ -81,10 +81,12 @@ const onEnd = () => {
 
   }
   mouseData.mouseDown = false;
+  setTimeout(() => {
+    mouseData.hasMoved = false;
+  }, 10)
 };
 
 const onMove = (
-  
   fromPointer: Vector2,
   delta: Vector2,
   fromTrackpad?: boolean
@@ -104,7 +106,10 @@ const onMove = (
   }
 
   if (mouseData.mouseDown) {
+    mouseData.hasMoved = true;
     gestureData.setTargetScrollPos({ x: -delta.x * 1.5, y: -delta.y * 1.5 });
+  } else if(mouseData.hasMoved) {
+    mouseData.hasMoved = false;
   }
 
 };
@@ -182,6 +187,12 @@ function getOffsetFromCenterCoef(value: number, vectorName: "x" | "y"): number {
   );
 }
 
+function updateTransformPosition() {
+  gestureData.transformPosition.x += velocity.x;
+  gestureData.transformPosition.y += velocity.y;
+}
+
+
 function tranformWindowsOnDrag(): void {
   const zoom = gestureData.zoomFactor;
   const zoomInvert = 1 - zoom;
@@ -219,6 +230,7 @@ function tranformWindowsOnDrag(): void {
 
 function translateToTargetPos() {
   if (apiData.selectedWindow && gestureData.translating) {
+    console.log("runs")
     const { x, y } = apiData.selectedWindow.transform;
     const dstToTarget = {
       x: gestureData.screenSize.center.x - x,
@@ -238,15 +250,23 @@ function translateToTargetPos() {
   }
 }
 
+const keepInBounds = () => {
+  if(apiData.outOfBounds && apiData.lastVisibleWindowId && !gestureData.translating && route.path === "/index" && apiData.loaderAnimationFinished) {
+    apiData.selectWindow(apiData.lastVisibleWindowId, false, undefined, gestureData.zoomTarget, true);
+  }
+}
+
 // main animation loop. runs every frame.
 
 const animateLoop = () => {
   translateCursor();
 
   gestureData.applyZoom();
+  updateScrollPos();
+  keepInBounds()
   translateToTargetPos();
   tranformWindowsOnDrag();
-  updateScrollPos();
+  updateTransformPosition();
   decreaseVelocity();
 
   frameId = requestAnimationFrame(animateLoop);

@@ -1,7 +1,4 @@
-const generateWindowSize = (
-  aspectRatio,
-  baseSize
-) => {
+const generateWindowSize = (aspectRatio, baseSize) => {
   const size = {
     x: 0,
     y: 0,
@@ -54,10 +51,7 @@ const generateWindowPosition = (
   };
 };
 
-const generateWindowPositions = (
-  ratios,
-  baseWindowSize
-) => {
+const generateWindowPositions = (ratios, baseWindowSize) => {
   const windowSizes = [];
   const windowPositions = [];
   ratios.forEach((ratio, index) => {
@@ -82,10 +76,7 @@ const generateRandomOffset = () => {
   return randomOffset;
 };
 
-const createProjectWindows = (
-  projects,
-  baseWindowSize
-) => {
+const createProjectWindows = (projects, baseWindowSize) => {
   // const windows = [];
   const positions = generateWindowPositions(
     projects.map(({ thumbnail }) => thumbnail.original.aspectRatio),
@@ -140,11 +131,7 @@ const generateMediaWindowPosition = (
   };
 };
 
-const createMediaWindows = (
-  rootWindow,
-  projectMedias,
-  baseWindowSize
-) => {
+const createMediaWindows = (rootWindow, projectMedias, baseWindowSize) => {
   // align media windows hozirontally with project window
   if (projectMedias.length < 1) {
     return [];
@@ -200,11 +187,7 @@ const createMediaWindows = (
   return mediaWindows;
 };
 
-const createAllProjectsMediaWindows = (
-  projects,
-  windows,
-  baseWindowSize
-) =>
+const createAllProjectsMediaWindows = (projects, windows, baseWindowSize) =>
   projects.map(({ media, uid }, index) => {
     return {
       projectUid: uid,
@@ -212,12 +195,39 @@ const createAllProjectsMediaWindows = (
     };
   });
 
+const createProjectWindowsBounds = (windows, baseWindowSize) => {
+  const bounds = windows.reduce(
+    (acc, window) => {
+      const size = generateWindowSize(
+        window.thumbnail.original.aspectRatio,
+        baseWindowSize
+      );
+      const pos = {
+        left: window.initialPosition.x - size.x / 2,
+        top: window.initialPosition.y - size.y / 2,
+        bottom: window.initialPosition.y,
+        right: window.initialPosition.x,
+      };
+      return {
+        left: pos.left < acc.left ? pos.left : acc.left,
+        bottom: pos.bottom > acc.bottom ? pos.bottom : acc.bottom,
+        top: pos.top < acc.top ? pos.top : acc.top,
+        right: pos.right > acc.right ? pos.right : acc.right,
+      };
+    },
+    { top: Infinity, bottom: -Infinity, left: Infinity, right: -Infinity }
+  );
+  return bounds;
+};
+
 onmessage = (e) => {
-  const {projects, baseWindowSize} = e.data
-  const p = JSON.parse(projects)
-  const bws = JSON.parse(baseWindowSize)
-  const projectWindows = createProjectWindows(p, bws)
-  postMessage({ progress: 50, projectWindows })
-  const mediaWindows = createAllProjectsMediaWindows(p, projectWindows, bws)
-  postMessage({ progress: 90, mediaWindows })
-}
+  const { projects, baseWindowSize } = e.data;
+  const p = JSON.parse(projects);
+  const bws = JSON.parse(baseWindowSize);
+  const projectWindows = createProjectWindows(p, bws);
+  postMessage({ progress: 50, projectWindows });
+  const projectWindowBounds = createProjectWindowsBounds(projectWindows, bws);
+  postMessage({ progress: 60, projectWindowBounds})
+  const mediaWindows = createAllProjectsMediaWindows(p, projectWindows, bws);
+  postMessage({ progress: 90, mediaWindows });
+};

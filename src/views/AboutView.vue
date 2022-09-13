@@ -213,7 +213,7 @@ const createObserver = () => {
     threshold: 0,
   });
 
-  const tableRows = document.querySelectorAll(".table__row, .contact__item");
+  const tableRows = document.querySelectorAll(".table__row, .contact__item, .skill, .skill__cat");
   [...tableRows].forEach((row) => observer?.observe(row));
 };
 
@@ -361,10 +361,18 @@ const contentStyle = computed(
         grid-column-start: 2
         margin-top: 3px
 
+        &:not(.visible) span
+        transform: translateY(100px)
+        transition: color .2s linear 0s, transform 0.3s ease-out 0s
+
       .skill__cat
         margin-top: 12px
         grid-row: auto / span 2
         grid-column: 1 / span 1
+
+        &:not(.visible) span
+        transform: translateY(100px)
+        transition: color .2s linear 0s, transform 0.3s ease-out 0s
 
     &.skills .table__row, &.skills .table__header
       grid-template-columns: auto 1fr
@@ -392,7 +400,7 @@ const contentStyle = computed(
 
     &:not(.visible) span
         transform: translateY(100px)
-        transition: color .2s linear 0s, transform 0.3s ease-out 0s,
+        transition: color .2s linear 0s, transform 0.3s ease-out 0s
 
     &:hover
       color: $c-white
@@ -419,5 +427,5 @@ const contentStyle = computed(
     margin-top: 30vh
 
   h2:last-of-type
-    margin-bottom: 64
+    margin-bottom: 64px
 </style>

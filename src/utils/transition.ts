@@ -3,7 +3,7 @@ import gsap, { Power2 } from "gsap";
 export const onIndexEnter = () =>
   new Promise<boolean>((resolve, reject) => {
     const tl = gsap.timeline({
-      onComplete: () => resolve(true),
+      onComplete: function() { resolve(true) },
       onInterrupt: () => reject(true),
     });
     tl.fromTo(
@@ -158,7 +158,7 @@ export const hideTutorial = (onComplete?: () => void) => {
 
 export const revealNavbar = (onComplete?: () => void) => {
   const tl = gsap.timeline({
-    onComplete,
+    onComplete: onComplete ?? (() => null),
   });
   tl.fromTo(
     "nav",

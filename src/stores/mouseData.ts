@@ -7,6 +7,7 @@ export interface MouseProps {
   targetMousePos: Vector2;
   lastMousePos: Vector2;
   mouseDown: boolean;
+  hasMoved: boolean;
   showCursor: boolean;
   cursorText: string | undefined;
   cursorIcon: string | undefined;
@@ -20,6 +21,7 @@ export const useMouseData = defineStore("mouseData", {
     targetMousePos: { x: window.innerWidth / 2, y: window.innerHeight + 100 },
     lastMousePos: { x: window.innerWidth / 2, y: window.innerHeight + 100 },
     mouseDown: false,
+    hasMoved: false,
     showCursor: false,
     cursorText: "Select",
     cursorIcon: "eye-outline",

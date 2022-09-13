@@ -262,7 +262,6 @@ const onButtonMouseLeave = () => emit("buttonLeave");
         &:hover
           transform: scale(1.2)
 
-
   &.hidden
     transition: filter .2s ease-out 0s, background-position .3s ease-in-out 0s, opacity .6s linear 0s, transform .6s ease-in 0s
     opacity: 0

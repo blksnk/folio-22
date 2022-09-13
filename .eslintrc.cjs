@@ -14,6 +14,6 @@ module.exports = {
   },
   rules: {
     "array-bracket-spacing": [ 'error', 'always' ],
-    quotes: [ 'warning', 'single']
+    quotes: [ 'warn', 'single']
   }
 };

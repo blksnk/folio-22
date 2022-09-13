@@ -9,6 +9,7 @@ export interface GestureProps {
   targetScrollPos: Vector2;
   scrollMax: Vector2;
   velocity: Vector2;
+  transformPosition: Vector2;
   translating: boolean;
   zoomTarget: number;
   preTranslateZoomTarget: number;
@@ -25,10 +26,11 @@ export const useGestureData = defineStore("gestureData", {
     targetScrollPos: { x: 0, y: 0 },
     scrollMax: { x: 0, y: window.innerHeight },
     velocity: { x: 0, y: 0 },
+    transformPosition: { x: 0, y: 0},
     translating: false,
-    zoomTarget: window.innerWidth < 600 ? 0.5 : 0.6,
-    preTranslateZoomTarget: window.innerWidth < 600 ? 0.5 : 0.6,
-    zoomFactor: 0.2,
+    zoomTarget: 0.1,
+    preTranslateZoomTarget: 0.1,
+    zoomFactor: 0.1,
     MIN_MOVE_FACTOR: 0.55,
     DRAG_FACTOR: 0.9,
     dragDezooming: false,
